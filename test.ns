@@ -1,0 +1,19 @@
+[ do test / don't do test ]
+if choice = 1
+    : What is the number?
+    
+    if number = 0
+        Foo: It is 0
+        if another_number > 0
+            Foo: Another number is more than 0
+        end
+        if another_another_number < 0
+            Foo: Another another number is less than 0
+        end
+    end
+    if number != 0
+        Foo: It is not 0
+    end
+
+    : Cool
+end
