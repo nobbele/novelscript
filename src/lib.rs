@@ -2,7 +2,7 @@ use std::{collections::HashMap, io::BufRead};
 
 pub mod parser;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SceneNodeData {
     Text {
         speaker: Option<String>,
@@ -50,7 +50,7 @@ impl Novel {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Scope<'a> {
     current: &'a Vec<SceneNode>,
     index: usize,
@@ -75,6 +75,7 @@ impl<'a> Scope<'a> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct NovelIterator<'a> {
     variables: HashMap<String, i32>,
     scope: Scope<'a>,
