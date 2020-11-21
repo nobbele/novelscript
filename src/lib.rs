@@ -40,6 +40,7 @@ struct Scope {
     current: Rc<Vec<SceneNode>>,
     index: usize,
     parent: Option<Box<Scope>>,
+    choice: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +77,9 @@ impl Novel {
                 SceneNode::Data(node) => Some(node),
                 SceneNode::Control(node) => match node {
                     SceneNodeControl::If(cond, content) => {
+                        // Hacky fix for scoped choices
+                        state.variables.insert("choice".into(), state.scope.choice);
+                        println!("adding choice {}", state.scope.choice);
                         if cond.check(&state.variables) {
                             state.scope = Scope::with_parent(&content, state.scope.clone());
                         } else {
@@ -106,6 +110,7 @@ impl Scope {
             current: data.clone(),
             parent: None,
             index: 0,
+            choice: 0,
         }
     }
 
@@ -114,13 +119,22 @@ impl Scope {
             current: data.clone(),
             parent: Some(Box::new(parent)),
             index: 0,
+            choice: 0,
         }
     }
 }
 
 impl NovelState {
     pub fn set_variable(&mut self, name: String, data: i32) {
+        if name.as_str() == "choice" {
+            panic!("Don't use set choice with set_variable, use set_choice instead");
+        }
         self.variables.insert(name, data);
+    }
+
+    pub fn set_choice(&mut self, choice: i32) {
+        println!("set choice to {}", choice);
+        self.scope.choice = choice; 
     }
 }
 

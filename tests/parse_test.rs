@@ -144,7 +144,7 @@ end
         novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()]),
         novel.next(&mut state).unwrap()
     );
-    state.set_variable("choice".into(), 1);
+    state.set_choice(1);
     assert_eq!(
         novelscript::SceneNodeData::Text {
             speaker: None,
@@ -179,7 +179,7 @@ end
         novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()]),
         novel.next(&mut state).unwrap()
     );
-    state.set_variable("choice".into(), 1);
+    state.set_choice(1);
     assert_eq!(
         novelscript::SceneNodeData::Text {
             speaker: None,
@@ -191,7 +191,7 @@ end
         novelscript::SceneNodeData::Choice(vec!["a".into(), "b".into()]),
         novel.next(&mut state).unwrap()
     );
-    state.set_variable("choice".into(), 2);
+    state.set_choice(1);
     assert_eq!(None, novel.next(&mut state));
 
     Ok(())
