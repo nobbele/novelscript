@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::BufRead};
+use std::{collections::HashMap, io::BufRead, rc::Rc};
 
 pub mod parser;
 
@@ -13,7 +13,7 @@ pub enum SceneNodeData {
 
 #[derive(Debug, Clone)]
 pub enum SceneNodeControl {
-    If(parser::Condition, Vec<SceneNode>),
+    If(parser::Condition, Rc<Vec<SceneNode>>),
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +25,19 @@ pub enum SceneNode {
 #[derive(Debug, Clone, Default)]
 pub struct Novel {
     scenes: HashMap<String, Vec<SceneNode>>,
+}
+
+#[derive(Debug, Clone)]
+struct Scope {
+    current: Rc<Vec<SceneNode>>,
+    index: usize,
+    parent: Option<Box<Scope>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NovelState {
+    variables: HashMap<String, i32>,
+    scope: Scope,
 }
 
 impl Novel {
@@ -42,78 +55,67 @@ impl Novel {
         Ok(())
     }
 
-    pub fn iter<'a>(&'a self, starting_scene: &str) -> NovelIterator<'a> {
-        NovelIterator {
+    pub fn new_state(&self, starting_scene: &str) -> NovelState {
+        NovelState {
             variables: HashMap::new(),
-            scope: Scope::new(&self.scenes[starting_scene]),
+            scope: Scope::new(&Rc::new(self.scenes[starting_scene].clone())),
         }
+    }
+
+    pub fn next(&self, state: &mut NovelState) -> Option<SceneNodeData> {
+        let node = match state
+            .scope
+            .current
+            .get(state.scope.index)
+            .cloned()
+        {
+            Some(node) => match node {
+                SceneNode::Data(node) => Some(node),
+                SceneNode::Control(node) => match node {
+                    SceneNodeControl::If(cond, content) => {
+                        if cond.check(&state.variables) {
+                            state.scope = Scope::with_parent(&content, state.scope.clone());
+                        } else {
+                            state.scope.index += 1;
+                        }
+                        return self.next(state);
+                    }
+                },
+            },
+            None => {
+                if let Some(parent) = state.scope.parent.clone() {
+                    state.scope = *parent;
+                    state.scope.index += 1;
+                    return self.next(state);
+                } else {
+                    None
+                }
+            }
+        };
+        state.scope.index += 1;
+        node
     }
 }
 
-#[derive(Debug, Clone)]
-struct Scope<'a> {
-    current: &'a Vec<SceneNode>,
-    index: usize,
-    parent: Option<Box<Scope<'a>>>,
-}
-
-impl<'a> Scope<'a> {
-    pub fn new(data: &'a Vec<SceneNode>) -> Self {
+impl Scope {
+    pub fn new(data: &Rc<Vec<SceneNode>>) -> Self {
         Scope {
-            current: data,
+            current: data.clone(),
             parent: None,
             index: 0,
         }
     }
 
-    pub fn with_parent(data: &'a Vec<SceneNode>, parent: Scope<'a>) -> Self {
+    pub fn with_parent(data: &Rc<Vec<SceneNode>>, parent: Scope) -> Self {
         Scope {
-            current: data,
+            current: data.clone(),
             parent: Some(Box::new(parent)),
             index: 0,
         }
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct NovelIterator<'a> {
-    variables: HashMap<String, i32>,
-    scope: Scope<'a>,
-}
-
-impl<'a> std::iter::Iterator for NovelIterator<'a> {
-    type Item = &'a SceneNodeData;
-    fn next(&mut self) -> Option<&'a SceneNodeData> {
-        let node = match self.scope.current.get(self.scope.index) {
-            Some(node) => match node {
-                SceneNode::Data(node) => Some(node),
-                SceneNode::Control(node) => match node {
-                    SceneNodeControl::If(cond, content) => {
-                        if cond.check(&self.variables) {
-                            self.scope = Scope::with_parent(&content, self.scope.clone());
-                        } else {
-                            self.scope.index += 1;
-                        }
-                        return self.next();
-                    }
-                },
-            },
-            None => {
-                if let Some(parent) = self.scope.parent.clone() {
-                    self.scope = *parent;
-                    self.scope.index += 1;
-                    return self.next();
-                } else {
-                    None
-                }
-            }
-        };
-        self.scope.index += 1;
-        node
-    }
-}
-
-impl<'a> NovelIterator<'a> {
+impl NovelState {
     pub fn set_variable(&mut self, name: String, data: i32) {
         self.variables.insert(name, data);
     }
@@ -126,13 +128,13 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
         nodes.push(match statement {
             parser::Statement::End => break,
             parser::Statement::If(cond) => {
-                SceneNode::Control(SceneNodeControl::If(cond, parse(iter)))
+                SceneNode::Control(SceneNodeControl::If(cond, Rc::new(parse(iter))))
             }
             parser::Statement::Else => panic!("Else is currently unsupported"),
             parser::Statement::Choice(choices) => SceneNode::Data(SceneNodeData::Choice(choices)),
             parser::Statement::Text { speaker, content } => SceneNode::Data(SceneNodeData::Text {
-                speaker: speaker,
-                content: content,
+                speaker,
+                content,
             }),
         });
     }

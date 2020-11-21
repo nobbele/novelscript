@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, io::BufRead, fmt::Debug};
+use std::{collections::HashMap, fmt, fmt::Debug, io::BufRead};
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -64,9 +64,15 @@ pub struct ParseErrColl(Vec<(usize, ParseError)>);
 
 impl fmt::Display for ParseErrColl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[\n\t{}\n]", self.0.iter().map(|r| {
-            format!("Line {}: `{}`", r.0, r.1)
-        }).collect::<Vec<_>>().join("\n\t"))?;
+        write!(
+            f,
+            "[\n\t{}\n]",
+            self.0
+                .iter()
+                .map(|r| { format!("Line {}: `{}`", r.0, r.1) })
+                .collect::<Vec<_>>()
+                .join("\n\t")
+        )?;
         Ok(())
     }
 }
@@ -77,7 +83,7 @@ impl Debug for ParseErrColl {
     }
 }
 
-impl std::error::Error for ParseErrColl { }
+impl std::error::Error for ParseErrColl {}
 
 pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
     let res: (Vec<ParseResult>, Vec<ParseResult>) = reader
@@ -89,7 +95,7 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
                     let line = line.trim_start();
 
                     if line.is_empty() {
-                        return None
+                        return None;
                     }
 
                     let statement: Option<Result<Statement, ParseError>> = parse_if(line)
@@ -114,7 +120,7 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
             }
         })
         .partition(|r| matches!(*r, ParseResult::Statement(..)));
-    if res.1.len() > 0 {
+    if !res.1.is_empty() {
         Err(ParseErrColl(
             res.1
                 .iter()
@@ -163,7 +169,7 @@ fn parse_text(s: &str) -> Option<Result<Statement, ParseError>> {
     if let Some(idx) = s.find(':') {
         let speaker = {
             let speaker = &s[..idx];
-            if speaker.len() > 0 {
+            if !speaker.is_empty() {
                 Some(speaker.to_owned())
             } else {
                 None
