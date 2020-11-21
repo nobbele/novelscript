@@ -9,6 +9,14 @@ pub enum SceneNodeData {
         content: String,
     },
     Choice(Vec<String>),
+    LoadCharacter {
+        character: String,
+        expression: String,
+        placement: String,
+    },
+    LoadBackground {
+        name: String
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -63,12 +71,7 @@ impl Novel {
     }
 
     pub fn next(&self, state: &mut NovelState) -> Option<SceneNodeData> {
-        let node = match state
-            .scope
-            .current
-            .get(state.scope.index)
-            .cloned()
-        {
+        let node = match state.scope.current.get(state.scope.index).cloned() {
             Some(node) => match node {
                 SceneNode::Data(node) => Some(node),
                 SceneNode::Control(node) => match node {
@@ -132,10 +135,23 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
             }
             parser::Statement::Else => panic!("Else is currently unsupported"),
             parser::Statement::Choice(choices) => SceneNode::Data(SceneNodeData::Choice(choices)),
-            parser::Statement::Text { speaker, content } => SceneNode::Data(SceneNodeData::Text {
-                speaker,
-                content,
+            parser::Statement::LoadCharacter {
+                character,
+                expression,
+                placement,
+            } => SceneNode::Data(SceneNodeData::LoadCharacter {
+                character,
+                expression,
+                placement,
             }),
+            parser::Statement::LoadBackground {
+                name
+            } => SceneNode::Data(SceneNodeData::LoadBackground {
+                name,
+            }),
+            parser::Statement::Text { speaker, content } => {
+                SceneNode::Data(SceneNodeData::Text { speaker, content })
+            }
         });
     }
     nodes

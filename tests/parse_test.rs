@@ -196,3 +196,57 @@ end
 
     Ok(())
 }
+
+#[test]
+fn test_load_character_and_background() -> Result<(), Box<dyn std::error::Error>> {
+    let novel = setup(
+        r#"
+    
+Foo: Hello Bar
+load Bar Normal at Center
+Bar: Hello Foo
+scene Night
+Foo: It is now night
+
+    "#,
+    )?;
+    let mut state = novel.new_state("test");
+
+    assert_eq!(
+        novelscript::SceneNodeData::Text {
+            speaker: Some("Foo".into()),
+            content: "Hello Bar".into(),
+        },
+        novel.next(&mut state).unwrap()
+    );
+    assert_eq!(
+        novelscript::SceneNodeData::LoadCharacter {
+            character: "Bar".into(),
+            expression: "Normal".into(),
+            placement: "Center".into(),
+        },
+        novel.next(&mut state).unwrap()
+    );
+    assert_eq!(
+        novelscript::SceneNodeData::Text {
+            speaker: Some("Bar".into()),
+            content: "Hello Foo".into(),
+        },
+        novel.next(&mut state).unwrap()
+    );
+    assert_eq!(
+        novelscript::SceneNodeData::LoadBackground {
+            name: "Night".into(),
+        },
+        novel.next(&mut state).unwrap()
+    );
+    assert_eq!(
+        novelscript::SceneNodeData::Text {
+            speaker: Some("Foo".into()),
+            content: "It is now night".into(),
+        },
+        novel.next(&mut state).unwrap()
+    );
+
+    Ok(())
+}

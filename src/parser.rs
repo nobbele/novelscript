@@ -11,6 +11,14 @@ pub enum Statement {
         content: String,
     },
     Choice(Vec<String>),
+    LoadCharacter {
+        character: String,
+        expression: String,
+        placement: String,
+    },
+    LoadBackground {
+        name: String
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -100,6 +108,8 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
 
                     let statement: Option<Result<Statement, ParseError>> = parse_if(line)
                         .or_else(|| parse_choice(line))
+                        .or_else(|| parse_load_character(line))
+                        .or_else(|| parse_load_background(line))
                         .or_else(|| parse_text(line));
 
                     if let Some(statement) = statement {
@@ -145,6 +155,63 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
                 }
             })
             .collect())
+    }
+}
+
+#[derive(Error, Clone, PartialEq, Debug)]
+pub enum LoadBackgroundError {}
+
+fn parse_load_background(s: &str) -> Option<Result<Statement, ParseError>> {
+    let mut split_it = s.split(' ');
+    if split_it.next() == Some("scene") {
+        Some({
+            let name = match split_it.next() {
+                Some(n) => n,
+                None => return None,
+            }
+            .to_owned();
+            Ok(Statement::LoadBackground {
+                name
+            })
+        })
+    } else {
+        None
+    }
+}
+
+#[derive(Error, Clone, PartialEq, Debug)]
+pub enum LoadCharacterError {}
+
+fn parse_load_character(s: &str) -> Option<Result<Statement, ParseError>> {
+    let mut split_it = s.split(' ');
+    if split_it.next() == Some("load") {
+        Some({
+            let character = match split_it.next() {
+                Some(n) => n,
+                None => return None,
+            }
+            .to_owned();
+            let expression = match split_it.next() {
+                Some(n) => n,
+                None => return None,
+            }
+            .to_owned();
+            let placement = match split_it.next() {
+                Some("at") => match split_it.next() {
+                    Some(n) => n,
+                    None => return None,
+                },
+                _ => return None,
+            }
+            .to_owned();
+            Ok(Statement::LoadCharacter {
+                character,
+                expression,
+                placement,
+            })
+        })
+    } else {
+        None
     }
 }
 
