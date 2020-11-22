@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::BufRead, rc::Rc};
+use std::{collections::HashMap, io::BufRead};
 
 pub mod parser;
 
@@ -21,7 +21,7 @@ pub enum SceneNodeData {
 
 #[derive(Debug, Clone)]
 pub enum SceneNodeControl {
-    If(parser::Condition, Rc<Vec<SceneNode>>),
+    If(parser::Condition, Vec<SceneNode>),
 }
 
 #[derive(Debug, Clone)]
@@ -37,15 +37,15 @@ pub struct Novel {
 
 #[derive(Debug, Clone)]
 struct Scope {
-    current: Rc<Vec<SceneNode>>,
     index: usize,
     choice: i32,
 }
 
 #[derive(Debug, Clone)]
 pub struct NovelState {
+    scene: String,
     variables: HashMap<String, i32>,
-    scope: Vec<Scope>,
+    scopes: Vec<Scope>,
 }
 
 impl Novel {
@@ -65,48 +65,56 @@ impl Novel {
 
     pub fn new_state(&self, starting_scene: &str) -> NovelState {
         NovelState {
+            scene: starting_scene.to_owned(),
             variables: HashMap::new(),
-            scope: vec![Scope::new(&Rc::new(self.scenes[starting_scene].clone()))],
+            scopes: vec![Scope::new()],
         }
     }
 
     pub fn next(&self, state: &mut NovelState) -> Option<SceneNodeData> {
-        let active_scope = state.scope.last()?;
-        let node = match active_scope.current.get(active_scope.index).cloned() {
+        println!("{:?}", state.scopes);
+        let active_scope = state.scopes.last()?;
+        let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index);
+        for scope in &state.scopes[1..] {
+            if let Some(SceneNode::Control(SceneNodeControl::If(_, content))) = active_node.map(| n| n) {
+                active_node = content.get(scope.index)
+            }
+        }
+        println!("{:?}", active_node);
+        let node = match active_node.cloned() {
             Some(node) => match node {
                 SceneNode::Data(node) => Some(node),
                 SceneNode::Control(node) => match node {
-                    SceneNodeControl::If(cond, content) => {
+                    SceneNodeControl::If(cond, _) => {
                         // Hacky fix for scoped choices
                         state.variables.insert("choice".into(), active_scope.choice);
                         if cond.check(&state.variables) {
-                            state.scope.push(Scope::new(&content));
+                            state.scopes.push(Scope::new());
                         } else {
-                            state.scope.last_mut().unwrap().index += 1;
+                            state.scopes.last_mut().unwrap().index += 1;
                         }
                         return self.next(state);
                     }
                 },
             },
             None => {
-                if state.scope.len() > 0 {
-                    state.scope.remove(state.scope.len() - 1);
-                    state.scope.last_mut().map(|n| n.index += 1);
+                if state.scopes.len() > 0 {
+                    state.scopes.remove(state.scopes.len() - 1);
+                    state.scopes.last_mut().map(|n| n.index += 1);
                     return self.next(state);
                 } else {
                     None
                 }
             }
         };
-        state.scope.last_mut().unwrap().index += 1;
+        state.scopes.last_mut().unwrap().index += 1;
         node
     }
 }
 
 impl Scope {
-    pub fn new(data: &Rc<Vec<SceneNode>>) -> Self {
+    pub fn new() -> Self {
         Scope {
-            current: data.clone(),
             index: 0,
             choice: 0,
         }
@@ -123,7 +131,7 @@ impl NovelState {
 
     pub fn set_choice(&mut self, choice: i32) {
         println!("set choice to {}", choice);
-        self.scope.last_mut().unwrap().choice = choice; 
+        self.scopes.last_mut().unwrap().choice = choice; 
     }
 }
 
@@ -134,7 +142,7 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
         nodes.push(match statement {
             parser::Statement::End => break,
             parser::Statement::If(cond) => {
-                SceneNode::Control(SceneNodeControl::If(cond, Rc::new(parse(iter))))
+                SceneNode::Control(SceneNodeControl::If(cond, parse(iter)))
             }
             parser::Statement::Else => panic!("Else is currently unsupported"),
             parser::Statement::Choice(choices) => SceneNode::Data(SceneNodeData::Choice(choices)),
