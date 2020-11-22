@@ -15,7 +15,7 @@ pub enum SceneNodeData {
         placement: String,
     },
     LoadBackground {
-        name: String
+        name: String,
     },
 }
 
@@ -36,12 +36,14 @@ pub struct Novel {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Scope {
     index: usize,
     choice: i32,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NovelState {
     scene: String,
     variables: HashMap<String, i32>,
@@ -76,7 +78,9 @@ impl Novel {
         let active_scope = state.scopes.last()?;
         let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index);
         for scope in &state.scopes[1..] {
-            if let Some(SceneNode::Control(SceneNodeControl::If(_, content))) = active_node.map(| n| n) {
+            if let Some(SceneNode::Control(SceneNodeControl::If(_, content))) =
+                active_node.map(|n| n)
+            {
                 active_node = content.get(scope.index)
             }
         }
@@ -131,7 +135,7 @@ impl NovelState {
 
     pub fn set_choice(&mut self, choice: i32) {
         println!("set choice to {}", choice);
-        self.scopes.last_mut().unwrap().choice = choice; 
+        self.scopes.last_mut().unwrap().choice = choice;
     }
 }
 
@@ -155,11 +159,9 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
                 expression,
                 placement,
             }),
-            parser::Statement::LoadBackground {
-                name
-            } => SceneNode::Data(SceneNodeData::LoadBackground {
-                name,
-            }),
+            parser::Statement::LoadBackground { name } => {
+                SceneNode::Data(SceneNodeData::LoadBackground { name })
+            }
             parser::Statement::Text { speaker, content } => {
                 SceneNode::Data(SceneNodeData::Text { speaker, content })
             }

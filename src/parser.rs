@@ -17,8 +17,8 @@ pub enum Statement {
         placement: String,
     },
     LoadBackground {
-        name: String
-    }
+        name: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -170,9 +170,7 @@ fn parse_load_background(s: &str) -> Option<Result<Statement, ParseError>> {
                 None => return None,
             }
             .to_owned();
-            Ok(Statement::LoadBackground {
-                name
-            })
+            Ok(Statement::LoadBackground { name })
         })
     } else {
         None

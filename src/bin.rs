@@ -21,10 +21,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{:?}", choices);
                 state.set_choice(1);
             }
-            novelscript::SceneNodeData::LoadCharacter { character, expression, placement } => {
-                println!("Load {} with {} expression at {}", character, expression, placement)
-            }
-            novelscript::SceneNodeData::LoadBackground{ name } => {
+            novelscript::SceneNodeData::LoadCharacter {
+                character,
+                expression,
+                placement,
+            } => println!(
+                "Load {} with {} expression at {}",
+                character, expression, placement
+            ),
+            novelscript::SceneNodeData::LoadBackground { name } => {
                 println!("Load background {}", name)
             }
         }
