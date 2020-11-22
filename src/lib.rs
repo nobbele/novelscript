@@ -39,14 +39,13 @@ pub struct Novel {
 struct Scope {
     current: Rc<Vec<SceneNode>>,
     index: usize,
-    parent: Option<Box<Scope>>,
     choice: i32,
 }
 
 #[derive(Debug, Clone)]
 pub struct NovelState {
     variables: HashMap<String, i32>,
-    scope: Scope,
+    scope: Vec<Scope>,
 }
 
 impl Novel {
@@ -67,39 +66,39 @@ impl Novel {
     pub fn new_state(&self, starting_scene: &str) -> NovelState {
         NovelState {
             variables: HashMap::new(),
-            scope: Scope::new(&Rc::new(self.scenes[starting_scene].clone())),
+            scope: vec![Scope::new(&Rc::new(self.scenes[starting_scene].clone()))],
         }
     }
 
     pub fn next(&self, state: &mut NovelState) -> Option<SceneNodeData> {
-        let node = match state.scope.current.get(state.scope.index).cloned() {
+        let active_scope = state.scope.last()?;
+        let node = match active_scope.current.get(active_scope.index).cloned() {
             Some(node) => match node {
                 SceneNode::Data(node) => Some(node),
                 SceneNode::Control(node) => match node {
                     SceneNodeControl::If(cond, content) => {
                         // Hacky fix for scoped choices
-                        state.variables.insert("choice".into(), state.scope.choice);
-                        println!("adding choice {}", state.scope.choice);
+                        state.variables.insert("choice".into(), active_scope.choice);
                         if cond.check(&state.variables) {
-                            state.scope = Scope::with_parent(&content, state.scope.clone());
+                            state.scope.push(Scope::new(&content));
                         } else {
-                            state.scope.index += 1;
+                            state.scope.last_mut().unwrap().index += 1;
                         }
                         return self.next(state);
                     }
                 },
             },
             None => {
-                if let Some(parent) = state.scope.parent.clone() {
-                    state.scope = *parent;
-                    state.scope.index += 1;
+                if state.scope.len() > 0 {
+                    state.scope.remove(state.scope.len() - 1);
+                    state.scope.last_mut().map(|n| n.index += 1);
                     return self.next(state);
                 } else {
                     None
                 }
             }
         };
-        state.scope.index += 1;
+        state.scope.last_mut().unwrap().index += 1;
         node
     }
 }
@@ -108,16 +107,6 @@ impl Scope {
     pub fn new(data: &Rc<Vec<SceneNode>>) -> Self {
         Scope {
             current: data.clone(),
-            parent: None,
-            index: 0,
-            choice: 0,
-        }
-    }
-
-    pub fn with_parent(data: &Rc<Vec<SceneNode>>, parent: Scope) -> Self {
-        Scope {
-            current: data.clone(),
-            parent: Some(Box::new(parent)),
             index: 0,
             choice: 0,
         }
@@ -134,7 +123,7 @@ impl NovelState {
 
     pub fn set_choice(&mut self, choice: i32) {
         println!("set choice to {}", choice);
-        self.scope.choice = choice; 
+        self.scope.last_mut().unwrap().choice = choice; 
     }
 }
 
