@@ -9,24 +9,34 @@ pub enum SceneNodeData {
         content: String,
     },
     Choice(Vec<String>),
-    LoadCharacter {
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SceneNodeLoad {
+    Character {
         character: String,
         expression: String,
         placement: String,
     },
-    LoadBackground {
+    Background {
         name: String,
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SceneNodeControl {
     If(parser::Condition, Vec<SceneNode>),
 }
 
-#[derive(Debug, Clone)]
-pub enum SceneNode {
+#[derive(Debug, Clone, PartialEq)]
+pub enum SceneNodeUser {
     Data(SceneNodeData),
+    Load(SceneNodeLoad),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SceneNode {
+    User(SceneNodeUser),
     Control(SceneNodeControl),
 }
 
@@ -73,7 +83,7 @@ impl Novel {
         }
     }
 
-    pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeData> {
+    pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
         println!("{:?}", state.scopes);
         let active_scope = state.scopes.last()?;
         let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index);
@@ -87,7 +97,7 @@ impl Novel {
         println!("{:?}", active_node);
         let node = match active_node {
             Some(node) => match node {
-                SceneNode::Data(node) => Some(node),
+                SceneNode::User(node) => Some(node),
                 SceneNode::Control(node) => match node {
                     SceneNodeControl::If(cond, _) => {
                         // Hacky fix for scoped choices
@@ -149,21 +159,21 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
                 SceneNode::Control(SceneNodeControl::If(cond, parse(iter)))
             }
             parser::Statement::Else => panic!("Else is currently unsupported"),
-            parser::Statement::Choice(choices) => SceneNode::Data(SceneNodeData::Choice(choices)),
+            parser::Statement::Choice(choices) => SceneNode::User(SceneNodeUser::Data(SceneNodeData::Choice(choices))),
             parser::Statement::LoadCharacter {
                 character,
                 expression,
                 placement,
-            } => SceneNode::Data(SceneNodeData::LoadCharacter {
+            } => SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Character {
                 character,
                 expression,
                 placement,
-            }),
+            })),
             parser::Statement::LoadBackground { name } => {
-                SceneNode::Data(SceneNodeData::LoadBackground { name })
+                SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Background { name }))
             }
             parser::Statement::Text { speaker, content } => {
-                SceneNode::Data(SceneNodeData::Text { speaker, content })
+                SceneNode::User(SceneNodeUser::Data(SceneNodeData::Text { speaker, content }))
             }
         });
     }

@@ -14,23 +14,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while let Some(node) = novel.next(&mut state) {
         match node {
-            novelscript::SceneNodeData::Text { speaker, content } => {
-                println!("{}: {}", speaker.as_ref().unwrap_or(&"*".into()), content)
-            }
-            novelscript::SceneNodeData::Choice(choices) => {
-                println!("{:?}", choices);
-                state.set_choice(1);
-            }
-            novelscript::SceneNodeData::LoadCharacter {
-                character,
-                expression,
-                placement,
-            } => println!(
-                "Load {} with {} expression at {}",
-                character, expression, placement
-            ),
-            novelscript::SceneNodeData::LoadBackground { name } => {
-                println!("Load background {}", name)
+            novelscript::SceneNodeUser::Data(node) => match node {
+                novelscript::SceneNodeData::Text { speaker, content } => {
+                    println!("{}: {}", speaker.as_ref().unwrap_or(&"*".into()), content)
+                }
+                novelscript::SceneNodeData::Choice(choices) => {
+                    println!("{:?}", choices);
+                    state.set_choice(1);
+                }
+            },
+            novelscript::SceneNodeUser::Load(node) => match node {
+                novelscript::SceneNodeLoad::Character {
+                    character,
+                    expression,
+                    placement,
+                } => println!(
+                    "Load {} with {} expression at {}",
+                    character, expression, placement
+                ),
+                novelscript::SceneNodeLoad::Background { name } => {
+                    println!("Load background {}", name)
+                }
             }
         }
     }
