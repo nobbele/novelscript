@@ -133,10 +133,10 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
     if !res.1.is_empty() {
         Err(ParseErrColl(
             res.1
-                .iter()
+                .into_iter()
                 .map(|r| {
                     if let ParseResult::Error(n, err) = r {
-                        (*n, err.())
+                        (n, err)
                     } else {
                         panic!()
                     }
