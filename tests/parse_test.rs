@@ -20,7 +20,7 @@ foo: test
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: Some("foo".into()),
             content: "test".into(),
         },
@@ -28,7 +28,7 @@ foo: test
     );
 
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: None,
             content: "test".into(),
         },
@@ -54,7 +54,7 @@ end
     state.set_variable("num".into(), 13);
 
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: None,
             content: "first".into()
         },
@@ -105,14 +105,14 @@ end
     state.set_variable("num2".into(), 17);
 
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: None,
             content: "first".into()
         },
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: None,
             content: "second".into()
         },
@@ -141,12 +141,12 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()]),
+        &novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()]),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: None,
             content: "first".into()
         },
@@ -176,19 +176,19 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()]),
+        &novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()]),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: None,
             content: "first".into()
         },
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        novelscript::SceneNodeData::Choice(vec!["a".into(), "b".into()]),
+        &novelscript::SceneNodeData::Choice(vec!["a".into(), "b".into()]),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -213,14 +213,14 @@ Foo: It is now night
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: Some("Foo".into()),
             content: "Hello Bar".into(),
         },
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        novelscript::SceneNodeData::LoadCharacter {
+        &novelscript::SceneNodeData::LoadCharacter {
             character: "Bar".into(),
             expression: "Normal".into(),
             placement: "Center".into(),
@@ -228,20 +228,20 @@ Foo: It is now night
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: Some("Bar".into()),
             content: "Hello Foo".into(),
         },
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        novelscript::SceneNodeData::LoadBackground {
+        &novelscript::SceneNodeData::LoadBackground {
             name: "Night".into(),
         },
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        novelscript::SceneNodeData::Text {
+        &novelscript::SceneNodeData::Text {
             speaker: Some("Foo".into()),
             content: "It is now night".into(),
         },

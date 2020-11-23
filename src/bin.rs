@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(node) = novel.next(&mut state) {
         match node {
             novelscript::SceneNodeData::Text { speaker, content } => {
-                println!("{}: {}", speaker.unwrap_or("*".into()), content)
+                println!("{}: {}", speaker.as_ref().unwrap_or(&"*".into()), content)
             }
             novelscript::SceneNodeData::Choice(choices) => {
                 println!("{:?}", choices);

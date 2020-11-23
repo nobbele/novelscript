@@ -73,7 +73,7 @@ impl Novel {
         }
     }
 
-    pub fn next(&self, state: &mut NovelState) -> Option<SceneNodeData> {
+    pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeData> {
         println!("{:?}", state.scopes);
         let active_scope = state.scopes.last()?;
         let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index);
@@ -85,7 +85,7 @@ impl Novel {
             }
         }
         println!("{:?}", active_node);
-        let node = match active_node.cloned() {
+        let node = match active_node {
             Some(node) => match node {
                 SceneNode::Data(node) => Some(node),
                 SceneNode::Control(node) => match node {

@@ -136,7 +136,7 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
                 .iter()
                 .map(|r| {
                     if let ParseResult::Error(n, err) = r {
-                        (*n, err.clone())
+                        (*n, err.())
                     } else {
                         panic!()
                     }
@@ -146,10 +146,10 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
     } else {
         Ok(res
             .0
-            .iter()
+            .into_iter()
             .map(|r| {
                 if let ParseResult::Statement(stmt) = r {
-                    stmt.clone()
+                    stmt
                 } else {
                     panic!()
                 }
