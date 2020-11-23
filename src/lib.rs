@@ -84,7 +84,6 @@ impl Novel {
     }
 
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
-        println!("{:?}", state.scopes);
         let active_scope = state.scopes.last()?;
         let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index);
         for scope in &state.scopes[1..] {
@@ -94,7 +93,6 @@ impl Novel {
                 active_node = content.get(scope.index)
             }
         }
-        println!("{:?}", active_node);
         let node = match active_node {
             Some(node) => match node {
                 SceneNode::User(node) => Some(node),
