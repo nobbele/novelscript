@@ -48,8 +48,19 @@ pub struct Novel {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Scope {
-    index: usize,
+    /// This is the index of the node that was next'd. it's None when nothing has been loaded.
+    index: Option<usize>,
     choice: i32,
+}
+
+impl Scope {
+    pub fn inc(&mut self) {
+        if let Some(idx) = &mut self.index {
+            *idx += 1;
+        } else {
+            self.index = Some(0);
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -83,14 +94,18 @@ impl Novel {
         }
     }
 
+    /// This gets current node and then increments the counter. 
+    /// Use `.dec()` to decrement the counter.
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
+        state.scopes.last_mut()?.inc();
+
         let active_scope = state.scopes.last()?;
-        let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index);
+        let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index.unwrap());
         for scope in &state.scopes[1..] {
             if let Some(SceneNode::Control(SceneNodeControl::If(_, content))) =
                 active_node.map(|n| n)
             {
-                active_node = content.get(scope.index)
+                active_node = content.get(scope.index.unwrap())
             }
         }
         let node = match active_node {
@@ -102,8 +117,6 @@ impl Novel {
                         state.variables.insert("choice".into(), active_scope.choice);
                         if cond.check(&state.variables) {
                             state.scopes.push(Scope::new());
-                        } else {
-                            state.scopes.last_mut().unwrap().index += 1;
                         }
                         return self.next(state);
                     }
@@ -112,14 +125,13 @@ impl Novel {
             None => {
                 if state.scopes.len() > 0 {
                     state.scopes.remove(state.scopes.len() - 1);
-                    state.scopes.last_mut().map(|n| n.index += 1);
+                    state.scopes.last_mut().map(|n| n.inc());
                     return self.next(state);
                 } else {
                     None
                 }
             }
         };
-        state.scopes.last_mut().unwrap().index += 1;
         node
     }
 }
@@ -127,7 +139,7 @@ impl Novel {
 impl Scope {
     pub fn new() -> Self {
         Scope {
-            index: 0,
+            index: None,
             choice: 0,
         }
     }
