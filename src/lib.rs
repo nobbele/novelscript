@@ -94,8 +94,6 @@ impl Novel {
         }
     }
 
-    /// This gets current node and then increments the counter. 
-    /// Use `.dec()` to decrement the counter.
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
         state.scopes.last_mut()?.inc();
 
