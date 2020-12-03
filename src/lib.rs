@@ -9,10 +9,6 @@ pub enum SceneNodeData {
         content: String,
     },
     Choice(Vec<String>),
-    PlaySound {
-        name: String,
-        channel: Option<String>,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,6 +20,10 @@ pub enum SceneNodeLoad {
     },
     Background {
         name: String,
+    },
+    PlaySound {
+        name: String,
+        channel: Option<String>,
     },
 }
 
@@ -193,7 +193,7 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
                 }))
             }
             parser::Statement::PlaySound { name, channel } => {
-                SceneNode::User(SceneNodeUser::Data(SceneNodeData::PlaySound {
+                SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::PlaySound {
                     name,
                     channel,
                 }))

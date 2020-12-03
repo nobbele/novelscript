@@ -274,7 +274,7 @@ play relax music
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::PlaySound {
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
             name: "test".into(),
             channel: None,
         }),
@@ -282,7 +282,7 @@ play relax music
     );
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::PlaySound {
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
             name: "noise".into(),
             channel: Some("sfx".into()),
         }),
@@ -290,7 +290,7 @@ play relax music
     );
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::PlaySound {
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
             name: "relax".into(),
             channel: Some("music".into()),
         }),

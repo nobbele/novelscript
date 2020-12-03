@@ -21,8 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 novelscript::SceneNodeData::Choice(choices) => {
                     println!("{:?}", choices);
                     state.set_choice(1);
-                },
-                novelscript::SceneNodeData::PlaySound {name, channel} => println!("Playing {} on {:?}", name, channel),
+                }
             },
             novelscript::SceneNodeUser::Load(node) => match node {
                 novelscript::SceneNodeLoad::Character {
@@ -35,6 +34,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ),
                 novelscript::SceneNodeLoad::Background { name } => {
                     println!("Load background {}", name)
+                }
+                novelscript::SceneNodeLoad::PlaySound { name, channel } => {
+                    println!("Playing {} on {:?}", name, channel)
                 }
             },
         }
