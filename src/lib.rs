@@ -9,6 +9,10 @@ pub enum SceneNodeData {
         content: String,
     },
     Choice(Vec<String>),
+    PlaySound {
+        name: String,
+        channel: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -167,7 +171,9 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
                 SceneNode::Control(SceneNodeControl::If(cond, parse(iter)))
             }
             parser::Statement::Else => panic!("Else is currently unsupported"),
-            parser::Statement::Choice(choices) => SceneNode::User(SceneNodeUser::Data(SceneNodeData::Choice(choices))),
+            parser::Statement::Choice(choices) => {
+                SceneNode::User(SceneNodeUser::Data(SceneNodeData::Choice(choices)))
+            }
             parser::Statement::LoadCharacter {
                 character,
                 expression,
@@ -181,7 +187,16 @@ fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
                 SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Background { name }))
             }
             parser::Statement::Text { speaker, content } => {
-                SceneNode::User(SceneNodeUser::Data(SceneNodeData::Text { speaker, content }))
+                SceneNode::User(SceneNodeUser::Data(SceneNodeData::Text {
+                    speaker,
+                    content,
+                }))
+            }
+            parser::Statement::PlaySound { name, channel } => {
+                SceneNode::User(SceneNodeUser::Data(SceneNodeData::PlaySound {
+                    name,
+                    channel,
+                }))
             }
         });
     }

@@ -19,6 +19,10 @@ pub enum Statement {
     LoadBackground {
         name: String,
     },
+    PlaySound {
+        name: String,
+        channel: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -110,6 +114,7 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
                         .or_else(|| parse_choice(line))
                         .or_else(|| parse_load_character(line))
                         .or_else(|| parse_load_background(line))
+                        .or_else(|| parse_play_sound(line))
                         .or_else(|| parse_text(line));
 
                     if let Some(statement) = statement {
@@ -155,6 +160,22 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
                 }
             })
             .collect())
+    }
+}
+
+#[derive(Error, Clone, PartialEq, Debug)]
+pub enum LoadPlaySoundError {}
+
+fn parse_play_sound(s: &str) -> Option<Result<Statement, ParseError>> {
+    let mut split_it = s.split(' ');
+    if split_it.next() == Some("play") {
+        Some({
+            let name = split_it.next()?.to_owned();
+            let channel = split_it.next().map(|s| s.to_owned()).to_owned();
+            Ok(Statement::PlaySound { name, channel })
+        })
+    } else {
+        None
     }
 }
 

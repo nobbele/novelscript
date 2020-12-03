@@ -141,7 +141,10 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "x".into(),
+            "y".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -176,7 +179,10 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "x".into(),
+            "y".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -188,7 +194,10 @@ end
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["a".into(), "b".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "a".into(),
+            "b".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -244,6 +253,46 @@ Foo: It is now night
         &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
             speaker: Some("Foo".into()),
             content: "It is now night".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_sound() -> Result<(), Box<dyn std::error::Error>> {
+    let novel = setup(
+        r#"
+    
+play test
+play noise sfx
+play relax music
+
+    "#,
+    )?;
+    let mut state = novel.new_state("test");
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::PlaySound {
+            name: "test".into(),
+            channel: None,
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::PlaySound {
+            name: "noise".into(),
+            channel: Some("sfx".into()),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::PlaySound {
+            name: "relax".into(),
+            channel: Some("music".into()),
         }),
         novel.next(&mut state).unwrap()
     );
