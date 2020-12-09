@@ -21,6 +21,10 @@ pub enum SceneNodeLoad {
     Background {
         name: String,
     },
+    PlaySound {
+        name: String,
+        channel: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

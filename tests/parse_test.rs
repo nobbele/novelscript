@@ -290,3 +290,43 @@ Foo: It is now night
 
     Ok(())
 }
+
+#[test]
+fn test_sound() -> Result<(), Box<dyn std::error::Error>> {
+    let novel = setup(
+        r#"
+    
+play test
+play noise sfx
+play relax music
+
+    "#,
+    )?;
+    let mut state = novel.new_state("test");
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
+            name: "test".into(),
+            channel: None,
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
+            name: "noise".into(),
+            channel: Some("sfx".into()),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
+            name: "relax".into(),
+            channel: Some("music".into()),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    Ok(())
+}

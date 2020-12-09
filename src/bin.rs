@@ -32,7 +32,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 novelscript::SceneNodeLoad::Background { name } => {
                     println!("Load background {}", name)
                 }
-            }
+                novelscript::SceneNodeLoad::PlaySound { name, channel } => {
+                    println!("Playing {} on {:?}", name, channel)
+                }
+            },
         }
     }
 

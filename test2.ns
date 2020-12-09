@@ -1,3 +1,4 @@
+play bgnoise sfx
 Foo: Hello
 load Foo normal at center
 _: Hi
