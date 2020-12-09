@@ -1,9 +1,8 @@
 use novelscript;
-use std::io::BufReader;
 
 fn setup(s: &str) -> Result<novelscript::Novel, Box<dyn std::error::Error>> {
     let mut novel = novelscript::Novel::new();
-    novel.add_scene("test".into(), BufReader::new(s.as_bytes()))?;
+    novel.add_scene("test".into(), s)?;
     Ok(novel)
 }
 
@@ -13,7 +12,7 @@ fn test_text() -> Result<(), Box<dyn std::error::Error>> {
         r#"
     
 foo: test
-: test
+_: test
 
     "#,
     )?;
@@ -44,7 +43,7 @@ fn test_if() -> Result<(), Box<dyn std::error::Error>> {
         r#"
     
 if num = 13
-    : first
+    _: first
 end
 
     "#,
@@ -71,7 +70,7 @@ fn test_negative_if() -> Result<(), Box<dyn std::error::Error>> {
         r#"
     
 if num = 17
-    : first
+    _: first
 end
 
     "#,
@@ -91,9 +90,9 @@ fn test_nested_if() -> Result<(), Box<dyn std::error::Error>> {
         r#"
     
 if num = 13
-    : first
+    _: first
     if num2 = 17
-        : second
+        _: second
     end
 end
 
@@ -130,10 +129,10 @@ fn test_choice() -> Result<(), Box<dyn std::error::Error>> {
     
 [x / y]
 if choice = 1
-    : first
+    _: first
 end
 if choice = 2
-    : second
+    _: second
 end
 
     "#,
@@ -167,11 +166,11 @@ fn test_nested_choices() -> Result<(), Box<dyn std::error::Error>> {
     
 [x / y]
 if choice = 1
-    : first
+    _: first
     [a / b]
 end
 if choice = 2
-    : second
+    _: second
 end
 
     "#,

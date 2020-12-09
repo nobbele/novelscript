@@ -1,14 +1,13 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /*let mut novel = novelscript::Novel::new();
+    let mut novel = novelscript::Novel::new();
 
-    let file = std::fs::File::open("test.ns")?;
-    novel.add_scene("test".into(), BufReader::new(file))?;
+    let file = std::fs::read_to_string("test.ns")?;
+    novel.add_scene("test".into(), &file)?;
 
     let mut state = novel.new_state("test");
 
-    state.set_variable("number".into(), 0);
-    state.set_variable("another_number".into(), 1);
-    state.set_variable("another_another_number".into(), 0);
+    state.set_variable("number".into(), 1);
+    state.set_variable("another_number".into(), 0);
 
     while let Some(node) = novel.next(&mut state) {
         match node {
@@ -35,14 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-    }*/
-    let data = std::fs::read_to_string("test.ns").unwrap();
-
-    let mut novel = novelscript::Novel::new();
-
-    novel.add_scene("test".into(), &data)?;
-
-    println!("{:#?}", novel);
+    }
 
     Ok(())
 }

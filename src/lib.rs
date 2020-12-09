@@ -34,10 +34,42 @@ pub enum Comparison {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum CompareableData {
+    Variable(String),
+    Number(i32),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Condition {
-    first: String,
+    first: CompareableData,
     compare: Comparison,
-    second: String,
+    second: CompareableData,
+}
+
+impl Condition {
+    pub fn check(&self, map: &HashMap<String, i32>) -> bool {
+        let first = match &self.first {
+            CompareableData::Number(n) => Some(n),
+            CompareableData::Variable(s) => map.get(s)
+        };
+        let second = match &self.second {
+            CompareableData::Number(n) => Some(n),
+            CompareableData::Variable(s) => map.get(s)
+        };
+        match (first, second) {
+            (Some(first), Some(second)) => {
+                match self.compare {
+                    Comparison::Equals => first == second,
+                    Comparison::NotEquals => first != second,
+                    Comparison::MoreThan => first > second,
+                    Comparison::LessThan => first < second,
+                }
+            },
+            (None, None) => panic!("No variables{:?} or {:?} are invalid", self.first, self.second),
+            (None, _) => panic!("No variable {:?} is invalid", self.first),
+            (_, None) => panic!("No variable {:?} is invalid", self.second),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -62,28 +94,18 @@ pub enum SceneNode {
     Control(SceneNodeControl),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Branch {
+    First, Middle(usize), Last
+}
+
 #[derive(Debug, Clone, Default)]
-pub struct Novel {
-    scenes: HashMap<String, Vec<SceneNode>>,
-}
-
-impl Novel {
-    pub fn new() -> Self {
-        Novel::default()
-    }
-
-    pub fn add_scene(&mut self, name: String, data: &str) -> Result<(), parser::ParseErrColl> {
-        self.scenes.insert(name, parse(data));
-        Ok(())
-    }
-}
-
-/*#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Scope {
     /// This is the index of the node that was next'd. it's None when nothing has been loaded.
     index: Option<usize>,
     choice: i32,
+    branch: Option<Branch>,
 }
 
 impl Scope {
@@ -104,80 +126,6 @@ pub struct NovelState {
     scopes: Vec<Scope>,
 }
 
-impl Novel {
-    pub fn new() -> Self {
-        Novel::default()
-    }
-
-    pub fn add_scene(
-        &mut self,
-        name: String,
-        data: &str,
-    ) -> Result<(), parser::ParseErrColl> {
-        self.scenes
-            .insert(name, parse(data));
-        Ok(())
-    }
-
-    pub fn new_state(&self, starting_scene: &str) -> NovelState {
-        NovelState {
-            scene: starting_scene.to_owned(),
-            variables: HashMap::new(),
-            scopes: vec![Scope::new()],
-        }
-    }
-
-    /// This gets current node and then increments the counter.
-    /// Use `.dec()` to decrement the counter.
-    pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
-        state.scopes.last_mut()?.inc();
-
-        let active_scope = state.scopes.last()?;
-        let mut active_node = self.scenes[&state.scene].get(state.scopes[0].index.unwrap());
-        for scope in &state.scopes[1..] {
-            if let Some(SceneNode::Control(SceneNodeControl::If(_, content))) =
-                active_node.map(|n| n)
-            {
-                active_node = content.get(scope.index.unwrap())
-            }
-        }
-        let node = match active_node {
-            Some(node) => match node {
-                SceneNode::User(node) => Some(node),
-                SceneNode::Control(node) => match node {
-                    SceneNodeControl::If(cond, _) => {
-                        // Hacky fix for scoped choices
-                        state.variables.insert("choice".into(), active_scope.choice);
-                        if cond.check(&state.variables) {
-                            state.scopes.push(Scope::new());
-                        }
-                        return self.next(state);
-                    }
-                },
-            },
-            None => {
-                if state.scopes.len() > 0 {
-                    state.scopes.remove(state.scopes.len() - 1);
-                    state.scopes.last_mut().map(|n| n.inc());
-                    return self.next(state);
-                } else {
-                    None
-                }
-            }
-        };
-        node
-    }
-}
-
-impl Scope {
-    pub fn new() -> Self {
-        Scope {
-            index: None,
-            choice: 0,
-        }
-    }
-}
-
 impl NovelState {
     pub fn set_variable(&mut self, name: String, data: i32) {
         if name.as_str() == "choice" {
@@ -190,7 +138,105 @@ impl NovelState {
         println!("set choice to {}", choice);
         self.scopes.last_mut().unwrap().choice = choice;
     }
-}*/
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Novel {
+    scenes: HashMap<String, Vec<SceneNode>>,
+}
+
+impl Novel {
+    pub fn new() -> Self {
+        Novel::default()
+    }
+
+    pub fn new_state(&self, starting_scene: &str) -> NovelState {
+        NovelState {
+            scene: starting_scene.to_owned(),
+            variables: HashMap::new(),
+            scopes: vec![Scope::default()],
+        }
+    }
+
+    pub fn add_scene(
+        &mut self,
+        name: String,
+        data: &str,
+    ) -> Result<(), parser::ParseErrColl> {
+        self.scenes
+            .insert(name, parse(data));
+        Ok(())
+    }
+
+    pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
+        state.scopes.last_mut()?.inc();
+
+        let active_node = {
+            let active_scene = &self.scenes[&state.scene];
+
+            let mut prev_scope = &state.scopes[0];
+            let mut active_node = active_scene.get(prev_scope.index.unwrap());
+            for scope in &state.scopes[1..] {
+                if let Some(SceneNode::Control(SceneNodeControl::If {
+                    cond: _,
+                    content,
+                    else_ifs,
+                    else_content,
+                })) = active_node {
+                    if let Some(branch) = prev_scope.branch {
+                        active_node = match branch {
+                            Branch::First => content.get(scope.index.unwrap()),
+                            Branch::Middle(n) => else_ifs.get(n).map(|o| o.1.get(scope.index.unwrap())).flatten(),
+                            Branch::Last => else_content.as_ref().map(|c| c.get(scope.index.unwrap())).flatten()
+                        }
+                    }
+                }
+                prev_scope = scope;
+            }
+            active_node
+        };
+        let node = match active_node {
+            Some(node) => match node {
+                SceneNode::User(node) => Some(node),
+                SceneNode::Control(node) => match node {
+                    SceneNodeControl::If {
+                        cond,
+                        content: _,
+                        else_ifs,
+                        else_content,
+                    } => {
+                        // Hacky fix for scoped choices
+                        state.variables.insert("choice".into(), state.scopes.last()?.choice);
+                        if cond.check(&state.variables) {
+                            state.scopes.last_mut()?.branch = Some(Branch::First);
+                            state.scopes.push(Scope::default())
+                        } else if let Some((n, _)) = else_ifs.iter().enumerate().find(|(_, (else_if_cond, _))| {
+                            else_if_cond.check(&state.variables)
+                        }) {
+                            state.scopes.last_mut()?.branch = Some(Branch::Middle(n));
+                            state.scopes.push(Scope::default())
+                        } else if let Some(_) = else_content {
+                            state.scopes.last_mut()?.branch = Some(Branch::Last);
+                            state.scopes.push(Scope::default())
+                        }
+
+                        return self.next(state);
+                    }
+                },
+            },
+            None => {
+                if state.scopes.len() > 0 {
+                    state.scopes.pop();
+                    state.scopes.last_mut()?.branch = None;
+                    return self.next(state);
+                } else {
+                    None
+                }
+            }
+        };
+        node
+    }
+}
 
 #[derive(Parser)]
 #[grammar = "novelscript.pest"]
@@ -199,7 +245,7 @@ struct NovelscriptParser;
 fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneNode>) {
     let condition = {
         let mut cond_it = pair_it.next().unwrap().into_inner();
-        let first = cond_it.next().unwrap().as_str().to_owned();
+        let first = cond_it.next().unwrap().as_str();
         let compare = match cond_it.next().unwrap().as_str() {
             "=" => Comparison::Equals,
             "!=" => Comparison::NotEquals,
@@ -207,11 +253,18 @@ fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneN
             "<" => Comparison::LessThan,
             c => panic!("{}", c),
         };
-        let second = cond_it.next().unwrap().as_str().to_owned();
+        let second = cond_it.next().unwrap().as_str();
+        
         Condition {
-            first,
+            first: match first.parse() {
+                Ok(n) => CompareableData::Number(n),
+                Err(_) => CompareableData::Variable(first.to_owned()),
+            },
             compare,
-            second,
+            second: match second.parse() {
+                Ok(n) => CompareableData::Number(n),
+                Err(_) => CompareableData::Variable(second.to_owned()),
+            },
         }
     };
     let statement_list = pair_it
@@ -229,7 +282,7 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
         Rule::choice_statement => {
             let choices = pair
                 .into_inner()
-                .map(|choice| choice.as_str().to_owned())
+                .map(|choice| choice.as_str().trim().to_owned())
                 .collect::<Vec<_>>();
             SceneNode::User(SceneNodeUser::Data(SceneNodeData::Choice(choices)))
         }
