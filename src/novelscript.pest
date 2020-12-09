@@ -12,7 +12,8 @@ text = @{
         "!" |
         "." |
         "," |
-        "’"
+        "’" |
+        ";"
     )+
 }
 dialogue_statement = { name ~ ":" ~ text }
