@@ -2,7 +2,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut novel = novelscript::Novel::new();
 
     let file = std::fs::read_to_string("test2.ns")?;
-    novel.add_scene("test".into(), &file)?;
+    novel.add_scene("test".into(), &file);
 
     let mut state = novel.new_state("test");
 

@@ -2,8 +2,6 @@ use pest::Parser;
 use pest_derive::Parser;
 use std::collections::HashMap;
 
-pub mod parser;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum SceneNodeData {
     Text {
@@ -163,10 +161,9 @@ impl Novel {
         &mut self,
         name: String,
         data: &str,
-    ) -> Result<(), parser::ParseErrColl> {
+    ) {
         self.scenes
             .insert(name, parse(data));
-        Ok(())
     }
 
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
