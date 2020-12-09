@@ -38,6 +38,38 @@ _: test
 }
 
 #[test]
+fn test_special_text() -> Result<(), Box<dyn std::error::Error>> {
+    let novel = setup(
+        r#"
+    
+foo: "test"
+_: test? what!
+foo: hmm... what if, you say test
+
+    "#,
+    )?;
+    let mut state = novel.new_state("test");
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: Some("foo".into()),
+            content: "\"test\"".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: None,
+            content: "test? what!".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    Ok(())
+}
+
+#[test]
 fn test_if() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
