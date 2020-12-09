@@ -350,6 +350,15 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
                 placement,
             }))
         },
+        Rule::sound_statement => {
+            let mut sound_it = pair.into_inner();
+            let name = sound_it.next().unwrap().as_str().to_owned();
+            let channel = sound_it.next().unwrap().as_str().to_owned();
+            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::PlaySound {
+                name,
+                channel: Some(channel),
+            }))
+        }
         _ => unreachable!(),
     }
 }

@@ -54,11 +54,16 @@ scene_statement = {
     "scene" ~ name
 }
 
+sound_statement = {
+    "play" ~ name ~ name
+}
+
 statement = { 
     (choice_statement | 
     if_statement | 
     load_statement | 
     scene_statement | 
+    sound_statement |
     dialogue_statement) 
 }
 statement_list = { (statement)* }

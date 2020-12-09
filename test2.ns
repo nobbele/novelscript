@@ -4,3 +4,4 @@ load Foo normal at center
 _: Hi
 _: Let us wait for night
 scene Night
+play bgm music
