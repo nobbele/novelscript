@@ -266,15 +266,14 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
         }
         Rule::dialogue => {
             let mut diag_it = pair.into_inner();
-            let (speaker, content) = match (diag_it.next(), diag_it.next()) {
-                (Some(name), Some(text)) => {
-                    (Some(name.as_str().to_owned()), text.as_str().to_owned())
-                }
-                (Some(text), None) => (None, text.as_str().to_owned()),
-                _ => unreachable!(),
-            };
+            let speaker = diag_it.next().unwrap().as_str().to_owned();
+            let content = diag_it.next().unwrap().as_str().to_owned();
             SceneNode::User(SceneNodeUser::Data(SceneNodeData::Text {
-                speaker,
+                speaker: if speaker == "_" {
+                    None
+                } else {
+                    Some(speaker)
+                },
                 content,
             }))
         }
