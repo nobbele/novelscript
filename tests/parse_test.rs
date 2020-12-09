@@ -2,7 +2,7 @@ use novelscript;
 
 fn setup(s: &str) -> Result<novelscript::Novel, Box<dyn std::error::Error>> {
     let mut novel = novelscript::Novel::new();
-    novel.add_scene("test".into(), s)?;
+    novel.add_scene("test".into(), s);
     Ok(novel)
 }
 
