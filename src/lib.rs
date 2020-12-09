@@ -95,6 +95,7 @@ pub enum SceneNode {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Branch {
     First, Middle(usize), Last
 }
