@@ -1,9 +1,8 @@
 use novelscript;
-use std::io::BufReader;
 
 fn setup(s: &str) -> Result<novelscript::Novel, Box<dyn std::error::Error>> {
     let mut novel = novelscript::Novel::new();
-    novel.add_scene("test".into(), BufReader::new(s.as_bytes()))?;
+    novel.add_scene("test".into(), s);
     Ok(novel)
 }
 
@@ -13,7 +12,7 @@ fn test_text() -> Result<(), Box<dyn std::error::Error>> {
         r#"
     
 foo: test
-: test
+_: test
 
     "#,
     )?;
@@ -39,12 +38,44 @@ foo: test
 }
 
 #[test]
+fn test_special_text() -> Result<(), Box<dyn std::error::Error>> {
+    let novel = setup(
+        r#"
+    
+foo: "test"
+_: test? what!
+foo: hmm... what if, you say test
+
+    "#,
+    )?;
+    let mut state = novel.new_state("test");
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: Some("foo".into()),
+            content: "\"test\"".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: None,
+            content: "test? what!".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    Ok(())
+}
+
+#[test]
 fn test_if() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
     
 if num = 13
-    : first
+    _: first
 end
 
     "#,
@@ -71,7 +102,7 @@ fn test_negative_if() -> Result<(), Box<dyn std::error::Error>> {
         r#"
     
 if num = 17
-    : first
+    _: first
 end
 
     "#,
@@ -91,9 +122,9 @@ fn test_nested_if() -> Result<(), Box<dyn std::error::Error>> {
         r#"
     
 if num = 13
-    : first
+    _: first
     if num2 = 17
-        : second
+        _: second
     end
 end
 
@@ -130,10 +161,10 @@ fn test_choice() -> Result<(), Box<dyn std::error::Error>> {
     
 [x / y]
 if choice = 1
-    : first
+    _: first
 end
 if choice = 2
-    : second
+    _: second
 end
 
     "#,
@@ -141,7 +172,10 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "x".into(),
+            "y".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -164,11 +198,11 @@ fn test_nested_choices() -> Result<(), Box<dyn std::error::Error>> {
     
 [x / y]
 if choice = 1
-    : first
+    _: first
     [a / b]
 end
 if choice = 2
-    : second
+    _: second
 end
 
     "#,
@@ -176,7 +210,10 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "x".into(),
+            "y".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -188,7 +225,10 @@ end
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["a".into(), "b".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "a".into(),
+            "b".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);

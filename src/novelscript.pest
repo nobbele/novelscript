@@ -1,0 +1,66 @@
+WHITESPACE = _{ (" " | "\t" | "\r" | "\n")+ }
+COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+name = @{ (ASCII_ALPHANUMERIC | "?" | "_")+ }
+text = @{ 
+    (
+        ASCII_ALPHANUMERIC |
+        "?" | 
+        " " | 
+        "'" | 
+        "\"" | 
+        "!" |
+        "." |
+        "," |
+        "’" |
+        ";" |
+        "”" |
+        "“" |
+        "*"
+    )+
+}
+dialogue_statement = { name ~ ":" ~ text }
+
+comparison_op = {
+    ("=" | "!=" | ">" | "<")
+}
+
+condition = {
+    name ~ comparison_op ~ name
+}
+
+if_case = {
+    "if" ~ condition ~ statement_list
+}
+else_if_case = {
+    "else " ~ if_case
+}
+else_case = {
+    "else" ~ statement_list
+}
+if_statement = {
+   if_case ~ else_if_case? ~ else_case? ~ "end"
+}
+
+choice_statement = {
+    "[" ~ text ~ ("/" ~ text)* ~ "]"
+}
+
+load_statement = {
+    "load" ~ name ~ name ~ ("at" ~ name)
+}
+
+scene_statement = {
+    "scene" ~ name
+}
+
+statement = { 
+    (choice_statement | 
+    if_statement | 
+    load_statement | 
+    scene_statement | 
+    dialogue_statement) 
+}
+statement_list = { (statement)* }
+
+file = _{ SOI ~ statement_list ~ EOI }
