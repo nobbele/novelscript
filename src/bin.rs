@@ -1,7 +1,5 @@
-use std::io::BufReader;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut novel = novelscript::Novel::new();
+    /*let mut novel = novelscript::Novel::new();
 
     let file = std::fs::File::open("test.ns")?;
     novel.add_scene("test".into(), BufReader::new(file))?;
@@ -37,7 +35,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-    }
+    }*/
+    let data = std::fs::read_to_string("test.ns").unwrap();
+
+    let mut novel = novelscript::Novel::new();
+
+    novel.add_scene("test".into(), &data)?;
+
+    println!("{:#?}", novel);
 
     Ok(())
 }

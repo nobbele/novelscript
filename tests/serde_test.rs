@@ -6,7 +6,6 @@ use std::io::BufReader;
 #[test]
 fn test_save_load() {
     let serialized = {
-
         let mut novel = novelscript::Novel::new();
         let s = r#"
         
@@ -15,7 +14,9 @@ fn test_save_load() {
             Bar: test
 
         "#;
-        novel.add_scene("test".into(), BufReader::new(s.as_bytes())).unwrap();
+        novel
+            .add_scene("test".into(), BufReader::new(s.as_bytes()))
+            .unwrap();
 
         let mut state = novel.new_state("test");
 
@@ -48,7 +49,9 @@ fn test_save_load() {
         Bar: test
 
     "#;
-    novel.add_scene("test".into(), BufReader::new(s.as_bytes())).unwrap();
+    novel
+        .add_scene("test".into(), BufReader::new(s.as_bytes()))
+        .unwrap();
 
     assert_eq!(
         novelscript::SceneNodeData::Text {

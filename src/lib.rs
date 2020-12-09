@@ -1,4 +1,6 @@
-use std::{collections::HashMap, io::BufRead};
+use pest::Parser;
+use pest_derive::Parser;
+use std::collections::HashMap;
 
 pub mod parser;
 
@@ -24,8 +26,28 @@ pub enum SceneNodeLoad {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum Comparison {
+    Equals,
+    NotEquals,
+    MoreThan,
+    LessThan,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Condition {
+    first: String,
+    compare: Comparison,
+    second: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum SceneNodeControl {
-    If(parser::Condition, Vec<SceneNode>),
+    If {
+        cond: Condition,
+        else_ifs: Vec<(Condition, Vec<SceneNode>)>,
+        else_content: Option<Vec<SceneNode>>,
+        content: Vec<SceneNode>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -45,7 +67,18 @@ pub struct Novel {
     scenes: HashMap<String, Vec<SceneNode>>,
 }
 
-#[derive(Debug, Clone)]
+impl Novel {
+    pub fn new() -> Self {
+        Novel::default()
+    }
+
+    pub fn add_scene(&mut self, name: String, data: &str) -> Result<(), parser::ParseErrColl> {
+        self.scenes.insert(name, parse(data));
+        Ok(())
+    }
+}
+
+/*#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Scope {
     /// This is the index of the node that was next'd. it's None when nothing has been loaded.
@@ -79,10 +112,10 @@ impl Novel {
     pub fn add_scene(
         &mut self,
         name: String,
-        reader: impl BufRead,
+        data: &str,
     ) -> Result<(), parser::ParseErrColl> {
         self.scenes
-            .insert(name, parse(&mut parser::parse(reader)?.into_iter()));
+            .insert(name, parse(data));
         Ok(())
     }
 
@@ -94,7 +127,7 @@ impl Novel {
         }
     }
 
-    /// This gets current node and then increments the counter. 
+    /// This gets current node and then increments the counter.
     /// Use `.dec()` to decrement the counter.
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
         state.scopes.last_mut()?.inc();
@@ -157,35 +190,114 @@ impl NovelState {
         println!("set choice to {}", choice);
         self.scopes.last_mut().unwrap().choice = choice;
     }
+}*/
+
+#[derive(Parser)]
+#[grammar = "novelscript.pest"]
+struct NovelscriptParser;
+
+fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneNode>) {
+    let condition = {
+        let mut cond_it = pair_it.next().unwrap().into_inner();
+        let first = cond_it.next().unwrap().as_str().to_owned();
+        let compare = match cond_it.next().unwrap().as_str() {
+            "=" => Comparison::Equals,
+            "!=" => Comparison::NotEquals,
+            ">" => Comparison::MoreThan,
+            "<" => Comparison::LessThan,
+            c => panic!("{}", c),
+        };
+        let second = cond_it.next().unwrap().as_str().to_owned();
+        Condition {
+            first,
+            compare,
+            second,
+        }
+    };
+    let statement_list = pair_it
+        .next()
+        .unwrap()
+        .into_inner()
+        .map(|statement| parse_statement(statement.into_inner().next().unwrap()))
+        .collect::<Vec<_>>();
+
+    (condition, statement_list)
 }
 
-fn parse(iter: &mut impl Iterator<Item = parser::Statement>) -> Vec<SceneNode> {
+fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
+    match pair.as_rule() {
+        Rule::choice_statement => {
+            let choices = pair
+                .into_inner()
+                .map(|choice| choice.as_str().to_owned())
+                .collect::<Vec<_>>();
+            SceneNode::User(SceneNodeUser::Data(SceneNodeData::Choice(choices)))
+        }
+        Rule::if_statement => {
+            let mut pairs_it = pair.into_inner();
+            let (if_cond, if_content) = { parse_if(pairs_it.next().unwrap().into_inner()) };
+            let mut else_content = None;
+            let mut else_ifs = Vec::new();
+            for case in pairs_it {
+                match case.as_rule() {
+                    Rule::else_if_case => {
+                        let pair_it = case.into_inner().next().unwrap().into_inner();
+                        else_ifs.push(parse_if(pair_it));
+                    }
+                    Rule::else_case => {
+                        let statement_it = case.into_inner().next().unwrap().into_inner();
+                        else_content = Some(
+                            statement_it
+                                .map(|statement| {
+                                    parse_statement(statement.into_inner().next().unwrap())
+                                })
+                                .collect::<Vec<_>>(),
+                        );
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            SceneNode::Control(SceneNodeControl::If {
+                cond: if_cond,
+                else_ifs,
+                else_content,
+                content: if_content,
+            })
+        }
+        Rule::dialogue => {
+            let mut diag_it = pair.into_inner();
+            let (speaker, content) = match (diag_it.next(), diag_it.next()) {
+                (Some(name), Some(text)) => {
+                    (Some(name.as_str().to_owned()), text.as_str().to_owned())
+                }
+                (Some(text), None) => (None, text.as_str().to_owned()),
+                _ => unreachable!(),
+            };
+            SceneNode::User(SceneNodeUser::Data(SceneNodeData::Text {
+                speaker,
+                content,
+            }))
+        }
+        _ => unreachable!(),
+    }
+}
+
+fn parse(data: &str) -> Vec<SceneNode> {
     let mut nodes = Vec::new();
 
-    while let Some(statement) = iter.next() {
-        nodes.push(match statement {
-            parser::Statement::End => break,
-            parser::Statement::If(cond) => {
-                SceneNode::Control(SceneNodeControl::If(cond, parse(iter)))
+    let parse = NovelscriptParser::parse(Rule::file, &data)
+        .unwrap()
+        .next()
+        .unwrap();
+
+    for line in parse.into_inner() {
+        match line.as_rule() {
+            Rule::statement => {
+                nodes.push(parse_statement(line.into_inner().next().unwrap()));
             }
-            parser::Statement::Else => panic!("Else is currently unsupported"),
-            parser::Statement::Choice(choices) => SceneNode::User(SceneNodeUser::Data(SceneNodeData::Choice(choices))),
-            parser::Statement::LoadCharacter {
-                character,
-                expression,
-                placement,
-            } => SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Character {
-                character,
-                expression,
-                placement,
-            })),
-            parser::Statement::LoadBackground { name } => {
-                SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Background { name }))
-            }
-            parser::Statement::Text { speaker, content } => {
-                SceneNode::User(SceneNodeUser::Data(SceneNodeData::Text { speaker, content }))
-            }
-        });
+            _ => unreachable!(),
+        }
     }
+
     nodes
 }

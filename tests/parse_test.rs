@@ -141,7 +141,10 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "x".into(),
+            "y".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -176,7 +179,10 @@ end
     let mut state = novel.new_state("test");
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["x".into(), "y".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "x".into(),
+            "y".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
@@ -188,7 +194,10 @@ end
         novel.next(&mut state).unwrap()
     );
     assert_eq!(
-        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec!["a".into(), "b".into()])),
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Choice(vec![
+            "a".into(),
+            "b".into()
+        ])),
         novel.next(&mut state).unwrap()
     );
     state.set_choice(1);
