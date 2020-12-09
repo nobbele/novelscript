@@ -317,7 +317,7 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
                 content: if_content,
             })
         }
-        Rule::dialogue => {
+        Rule::dialogue_statement => {
             let mut diag_it = pair.into_inner();
             let speaker = diag_it.next().unwrap().as_str().to_owned();
             let content = diag_it.next().unwrap().as_str().to_owned();
@@ -329,7 +329,25 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
                 },
                 content,
             }))
-        }
+        },
+        Rule::scene_statement => {
+            let mut scene_it = pair.into_inner();
+            let name = scene_it.next().unwrap().as_str().to_owned();
+            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Background {
+                name
+            }))
+        },
+        Rule::load_statement => {
+            let mut load_it = pair.into_inner();
+            let character = load_it.next().unwrap().as_str().to_owned();
+            let expression = load_it.next().unwrap().as_str().to_owned();
+            let placement = load_it.next().unwrap().as_str().to_owned();
+            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Character {
+                character,
+                expression,
+                placement,
+            }))
+        },
         _ => unreachable!(),
     }
 }

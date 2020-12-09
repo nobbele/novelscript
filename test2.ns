@@ -1,5 +1,5 @@
 Foo: Hello
 load Foo normal at center
-: Hi
-: Let us wait for night
+_: Hi
+_: Let us wait for night
 scene Night

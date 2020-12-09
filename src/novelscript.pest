@@ -3,7 +3,7 @@ COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
 name = @{ (ASCII_ALPHANUMERIC | "?" | "_")+ }
 text = @{ (ASCII_ALPHANUMERIC | "?" | " " | "'")+ }
-dialogue = { name ~ ":" ~ text }
+dialogue_statement = { name ~ ":" ~ text }
 
 comparison_op = {
     ("=" | "!=" | ">" | "<")
@@ -30,7 +30,21 @@ choice_statement = {
     "[" ~ text ~ ("/" ~ text)* ~ "]"
 }
 
-statement = { (choice_statement | if_statement | dialogue) }
+load_statement = {
+    "load" ~ name ~ name ~ ("at" ~ name)
+}
+
+scene_statement = {
+    "scene" ~ name
+}
+
+statement = { 
+    (choice_statement | 
+    if_statement | 
+    load_statement | 
+    scene_statement | 
+    dialogue_statement) 
+}
 statement_list = { (statement)* }
 
 file = _{ SOI ~ statement_list ~ EOI }
