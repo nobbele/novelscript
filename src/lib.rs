@@ -25,6 +25,9 @@ pub enum SceneNodeLoad {
         name: String,
         channel: Option<String>,
     },
+    RemoveCharacter {
+        name: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,22 +55,23 @@ impl Condition {
     pub fn check(&self, map: &HashMap<String, i32>) -> bool {
         let first = match &self.first {
             CompareableData::Number(n) => Some(n),
-            CompareableData::Variable(s) => map.get(s)
+            CompareableData::Variable(s) => map.get(s),
         };
         let second = match &self.second {
             CompareableData::Number(n) => Some(n),
-            CompareableData::Variable(s) => map.get(s)
+            CompareableData::Variable(s) => map.get(s),
         };
         match (first, second) {
-            (Some(first), Some(second)) => {
-                match self.compare {
-                    Comparison::Equals => first == second,
-                    Comparison::NotEquals => first != second,
-                    Comparison::MoreThan => first > second,
-                    Comparison::LessThan => first < second,
-                }
+            (Some(first), Some(second)) => match self.compare {
+                Comparison::Equals => first == second,
+                Comparison::NotEquals => first != second,
+                Comparison::MoreThan => first > second,
+                Comparison::LessThan => first < second,
             },
-            (None, None) => panic!("No variables{:?} or {:?} are invalid", self.first, self.second),
+            (None, None) => panic!(
+                "No variables{:?} or {:?} are invalid",
+                self.first, self.second
+            ),
             (None, _) => panic!("No variable {:?} is invalid", self.first),
             (_, None) => panic!("No variable {:?} is invalid", self.second),
         }
@@ -99,7 +103,9 @@ pub enum SceneNode {
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Branch {
-    First, Middle(usize), Last
+    First,
+    Middle(usize),
+    Last,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -161,13 +167,8 @@ impl Novel {
         }
     }
 
-    pub fn add_scene(
-        &mut self,
-        name: String,
-        data: &str,
-    ) {
-        self.scenes
-            .insert(name, parse(data));
+    pub fn add_scene(&mut self, name: String, data: &str) {
+        self.scenes.insert(name, parse(data));
     }
 
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
@@ -184,12 +185,19 @@ impl Novel {
                     content,
                     else_ifs,
                     else_content,
-                })) = active_node {
+                })) = active_node
+                {
                     if let Some(branch) = prev_scope.branch {
                         active_node = match branch {
                             Branch::First => content.get(scope.index.unwrap()),
-                            Branch::Middle(n) => else_ifs.get(n).map(|o| o.1.get(scope.index.unwrap())).flatten(),
-                            Branch::Last => else_content.as_ref().map(|c| c.get(scope.index.unwrap())).flatten()
+                            Branch::Middle(n) => else_ifs
+                                .get(n)
+                                .map(|o| o.1.get(scope.index.unwrap()))
+                                .flatten(),
+                            Branch::Last => else_content
+                                .as_ref()
+                                .map(|c| c.get(scope.index.unwrap()))
+                                .flatten(),
                         }
                     }
                 }
@@ -208,13 +216,17 @@ impl Novel {
                         else_content,
                     } => {
                         // Hacky fix for scoped choices
-                        state.variables.insert("choice".into(), state.scopes.last()?.choice);
+                        state
+                            .variables
+                            .insert("choice".into(), state.scopes.last()?.choice);
                         if cond.check(&state.variables) {
                             state.scopes.last_mut()?.branch = Some(Branch::First);
                             state.scopes.push(Scope::default())
-                        } else if let Some((n, _)) = else_ifs.iter().enumerate().find(|(_, (else_if_cond, _))| {
-                            else_if_cond.check(&state.variables)
-                        }) {
+                        } else if let Some((n, _)) = else_ifs
+                            .iter()
+                            .enumerate()
+                            .find(|(_, (else_if_cond, _))| else_if_cond.check(&state.variables))
+                        {
                             state.scopes.last_mut()?.branch = Some(Branch::Middle(n));
                             state.scopes.push(Scope::default())
                         } else if let Some(_) = else_content {
@@ -256,7 +268,7 @@ fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneN
             c => panic!("{}", c),
         };
         let second = cond_it.next().unwrap().as_str();
-        
+
         Condition {
             first: match first.parse() {
                 Ok(n) => CompareableData::Number(n),
@@ -324,21 +336,15 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
             let speaker = diag_it.next().unwrap().as_str().to_owned();
             let content = diag_it.next().unwrap().as_str().to_owned();
             SceneNode::User(SceneNodeUser::Data(SceneNodeData::Text {
-                speaker: if speaker == "_" {
-                    None
-                } else {
-                    Some(speaker)
-                },
+                speaker: if speaker == "_" { None } else { Some(speaker) },
                 content,
             }))
-        },
+        }
         Rule::scene_statement => {
             let mut scene_it = pair.into_inner();
             let name = scene_it.next().unwrap().as_str().to_owned();
-            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Background {
-                name
-            }))
-        },
+            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Background { name }))
+        }
         Rule::load_statement => {
             let mut load_it = pair.into_inner();
             let character = load_it.next().unwrap().as_str().to_owned();
@@ -349,7 +355,7 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
                 expression,
                 placement,
             }))
-        },
+        }
         Rule::sound_statement => {
             let mut sound_it = pair.into_inner();
             let name = sound_it.next().unwrap().as_str().to_owned();
@@ -358,6 +364,11 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
                 name,
                 channel: Some(channel),
             }))
+        }
+        Rule::remove_statement => {
+            let mut remove_it = pair.into_inner();
+            let name = remove_it.next().unwrap().as_str().to_owned();
+            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::RemoveCharacter { name }))
         }
         _ => unreachable!(),
     }

@@ -5,3 +5,4 @@ _: Hi
 _: Let us wait for night
 scene Night
 play bgm music
+remove Foo

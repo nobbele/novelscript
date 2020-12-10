@@ -35,6 +35,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 novelscript::SceneNodeLoad::PlaySound { name, channel } => {
                     println!("Playing {} on {:?}", name, channel)
                 }
+                novelscript::SceneNodeLoad::RemoveCharacter { name } => {
+                    println!("Removed {}", name)
+                }
             },
         }
     }

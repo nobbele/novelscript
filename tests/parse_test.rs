@@ -117,6 +117,31 @@ end
 }
 
 #[test]
+fn test_remove() -> Result<(), Box<dyn std::error::Error>> {
+    let novel = setup(
+        r#"
+    
+remove Foo
+
+    "#,
+    )?;
+    let mut state = novel.new_state("test");
+
+    state.set_variable("num".into(), 13);
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Load(
+            novelscript::SceneNodeLoad::RemoveCharacter {
+                name: "Foo".into()
+            }
+        ), 
+        novel.next(&mut state).unwrap()
+    );
+
+    Ok(())
+}
+
+#[test]
 fn test_nested_if() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
