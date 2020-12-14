@@ -355,3 +355,56 @@ play relax music
 
     Ok(())
 }
+
+#[test]
+fn test_jump() -> Result<(), Box<dyn std::error::Error>> {
+    let mut novel = novelscript::Novel::new();
+    novel.add_scene("test".into(), r#"
+
+foo: test
+_: test
+jump test2
+
+    "#);
+    novel.add_scene("test2".into(), r#"
+
+foo: it is test2
+_: indeed
+
+    "#);
+    let mut state = novel.new_state("test");
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: Some("foo".into()),
+            content: "test".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: None,
+            content: "test".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: Some("foo".into()),
+            content: "it is test2".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {
+            speaker: None,
+            content: "indeed".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    Ok(())
+}

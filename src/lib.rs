@@ -87,6 +87,7 @@ pub enum SceneNodeControl {
         else_content: Option<Vec<SceneNode>>,
         content: Vec<SceneNode>,
     },
+    Jump(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -236,6 +237,12 @@ impl Novel {
                         }
 
                         return self.next(state);
+                    },
+                    SceneNodeControl::Jump(target) => {
+                        state.scopes = Vec1::new(Scope::default());
+                        state.scene = target.clone();
+
+                        return self.next(state);
                     }
                 },
             },
@@ -369,7 +376,12 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
             let mut remove_it = pair.into_inner();
             let name = remove_it.next().unwrap().as_str().to_owned();
             SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::RemoveCharacter { name }))
-        }
+        },
+        Rule::jump_statement => {
+            let mut jump_it = pair.into_inner();
+            let target = jump_it.next().unwrap().as_str().to_owned();
+            SceneNode::Control(SceneNodeControl::Jump(target))
+        },
         _ => unreachable!(),
     }
 }

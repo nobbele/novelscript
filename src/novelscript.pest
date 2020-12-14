@@ -62,6 +62,10 @@ sound_statement = {
     "play" ~ name ~ name?
 }
 
+jump_statement = {
+    "jump" ~ name
+}
+
 statement = { 
     (choice_statement | 
     if_statement | 
@@ -69,6 +73,7 @@ statement = {
     scene_statement | 
     remove_statement |
     sound_statement |
+    jump_statement |
     dialogue_statement) 
 }
 statement_list = { (statement)* }

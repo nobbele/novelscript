@@ -6,3 +6,5 @@ _: Let us wait for night
 scene Night
 play bgm music
 remove Foo
+
+jump test2_night
