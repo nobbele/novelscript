@@ -102,7 +102,7 @@ pub enum SceneNode {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum Branch {
     First,
     Middle(usize),
@@ -110,7 +110,7 @@ pub enum Branch {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(serde::Serialize, serde::Deserialize)]
 struct Scope {
     /// This is the index of the node that was next'd. it's None when nothing has been loaded.
     index: Option<usize>,
@@ -129,7 +129,7 @@ impl Scope {
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct NovelState {
     scene: String,
     variables: HashMap<String, i32>,
