@@ -1,6 +1,7 @@
 use pest::Parser;
 use pest_derive::Parser;
 use std::collections::HashMap;
+use vec1::Vec1;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SceneNodeData {
@@ -132,7 +133,7 @@ impl Scope {
 pub struct NovelState {
     scene: String,
     variables: HashMap<String, i32>,
-    scopes: Vec<Scope>,
+    scopes: Vec1<Scope>,
 }
 
 impl NovelState {
@@ -145,7 +146,7 @@ impl NovelState {
 
     pub fn set_choice(&mut self, choice: i32) {
         println!("set choice to {}", choice);
-        self.scopes.last_mut().unwrap().choice = choice;
+        self.scopes.last_mut().choice = choice;
     }
 }
 
@@ -163,7 +164,7 @@ impl Novel {
         NovelState {
             scene: starting_scene.to_owned(),
             variables: HashMap::new(),
-            scopes: vec![Scope::default()],
+            scopes: Vec1::new(Scope::default()),
         }
     }
 
@@ -172,7 +173,7 @@ impl Novel {
     }
 
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
-        state.scopes.last_mut()?.inc();
+        state.scopes.last_mut().inc();
 
         let active_node = {
             let active_scene = &self.scenes[&state.scene];
@@ -218,19 +219,19 @@ impl Novel {
                         // Hacky fix for scoped choices
                         state
                             .variables
-                            .insert("choice".into(), state.scopes.last()?.choice);
+                            .insert("choice".into(), state.scopes.last().choice);
                         if cond.check(&state.variables) {
-                            state.scopes.last_mut()?.branch = Some(Branch::First);
+                            state.scopes.last_mut().branch = Some(Branch::First);
                             state.scopes.push(Scope::default())
                         } else if let Some((n, _)) = else_ifs
                             .iter()
                             .enumerate()
                             .find(|(_, (else_if_cond, _))| else_if_cond.check(&state.variables))
                         {
-                            state.scopes.last_mut()?.branch = Some(Branch::Middle(n));
+                            state.scopes.last_mut().branch = Some(Branch::Middle(n));
                             state.scopes.push(Scope::default())
                         } else if let Some(_) = else_content {
-                            state.scopes.last_mut()?.branch = Some(Branch::Last);
+                            state.scopes.last_mut().branch = Some(Branch::Last);
                             state.scopes.push(Scope::default())
                         }
 
@@ -239,9 +240,8 @@ impl Novel {
                 },
             },
             None => {
-                if state.scopes.len() > 0 {
-                    state.scopes.pop();
-                    state.scopes.last_mut()?.branch = None;
+                if let Ok(..) = state.scopes.try_pop() {
+                    state.scopes.last_mut().branch = None;
                     return self.next(state);
                 } else {
                     None
