@@ -177,10 +177,10 @@ impl Novel {
         state.scopes.last_mut().inc();
 
         let active_node = {
-            let active_scene = &self.scenes[&state.scene];
+            let active_scene = &self.scenes.get(&state.scene).unwrap_or_else(|| panic!("Couldn't find scene '{}'", state.scene));
 
             let mut prev_scope = &state.scopes[0];
-            let mut active_node = active_scene.get(prev_scope.index.unwrap());
+            let mut active_node = active_scene.get(prev_scope.index.expect("Expected a scope index"));
             for scope in &state.scopes[1..] {
                 if let Some(SceneNode::Control(SceneNodeControl::If {
                     cond: _,
@@ -191,14 +191,14 @@ impl Novel {
                 {
                     if let Some(branch) = prev_scope.branch {
                         active_node = match branch {
-                            Branch::First => content.get(scope.index.unwrap()),
+                            Branch::First => content.get(scope.index.expect("Expected a scope index")),
                             Branch::Middle(n) => else_ifs
                                 .get(n)
-                                .map(|o| o.1.get(scope.index.unwrap()))
+                                .map(|o| o.1.get(scope.index.expect("Expected a scope index")))
                                 .flatten(),
                             Branch::Last => else_content
                                 .as_ref()
-                                .map(|c| c.get(scope.index.unwrap()))
+                                .map(|c| c.get(scope.index.expect("Expected a scope index")))
                                 .flatten(),
                         }
                     }
