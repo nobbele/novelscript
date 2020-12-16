@@ -175,7 +175,10 @@ impl Novel {
 
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
         state.scopes.last_mut().inc();
+        self.current(state)
+    }
 
+    pub fn current<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
         let active_node = {
             let active_scene = &self.scenes.get(&state.scene).unwrap_or_else(|| panic!("Couldn't find scene '{}'", state.scene));
 
