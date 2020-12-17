@@ -170,7 +170,11 @@ impl Novel {
     }
 
     pub fn add_scene(&mut self, name: String, data: &str) {
-        self.scenes.insert(name, parse(data));
+        self.add_nodes(name, parse(data));
+    }
+
+    pub fn add_nodes(&mut self, name: String, data: Vec<SceneNode>) {
+        self.scenes.insert(name, data);
     }
 
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
@@ -389,7 +393,7 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
     }
 }
 
-fn parse(data: &str) -> Vec<SceneNode> {
+pub fn parse(data: &str) -> Vec<SceneNode> {
     let mut nodes = Vec::new();
 
     let parse = NovelscriptParser::parse(Rule::file, &data)
