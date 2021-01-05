@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt, fmt::Debug, io::BufRead};
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Statement {
+enum Statement {
     If(Condition),
     Else,
     End,
@@ -26,13 +26,13 @@ pub enum Statement {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum RelationEntity {
+enum RelationEntity {
     Variable(String),
     Number(i32),
 }
 
 impl RelationEntity {
-    pub fn get_value(&self, variables: &HashMap<String, i32>) -> i32 {
+    fn get_value(&self, variables: &HashMap<String, i32>) -> i32 {
         match self {
             RelationEntity::Number(n) => *n,
             RelationEntity::Variable(var) => variables.get(var).unwrap_or_else(|| panic!("Couldn't find variable '{}'", var)),
@@ -41,7 +41,7 @@ impl RelationEntity {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Condition {
+enum Condition {
     IsSet(String),
     Equals(RelationEntity, RelationEntity),
     MoreThan(RelationEntity, RelationEntity),
@@ -64,7 +64,7 @@ enum ParseResult {
 }
 
 #[derive(Error, Clone, PartialEq, Debug)]
-pub enum ParseError {
+enum ParseError {
     #[error(transparent)]
     If(#[from] IfError),
 
@@ -72,7 +72,7 @@ pub enum ParseError {
     UnknownSyntax(String),
 }
 
-pub struct ParseErrColl(Vec<(usize, ParseError)>);
+struct ParseErrColl(Vec<(usize, ParseError)>);
 
 impl fmt::Display for ParseErrColl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -97,7 +97,7 @@ impl Debug for ParseErrColl {
 
 impl std::error::Error for ParseErrColl {}
 
-pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
+fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
     let res: (Vec<ParseResult>, Vec<ParseResult>) = reader
         .lines()
         .enumerate()
@@ -164,7 +164,7 @@ pub fn parse(reader: impl BufRead) -> Result<Vec<Statement>, ParseErrColl> {
 }
 
 #[derive(Error, Clone, PartialEq, Debug)]
-pub enum LoadPlaySoundError {}
+enum LoadPlaySoundError {}
 
 fn parse_play_sound(s: &str) -> Option<Result<Statement, ParseError>> {
     let mut split_it = s.split(' ');
@@ -180,7 +180,7 @@ fn parse_play_sound(s: &str) -> Option<Result<Statement, ParseError>> {
 }
 
 #[derive(Error, Clone, PartialEq, Debug)]
-pub enum LoadBackgroundError {}
+enum LoadBackgroundError {}
 
 fn parse_load_background(s: &str) -> Option<Result<Statement, ParseError>> {
     let mut split_it = s.split(' ');
@@ -199,7 +199,7 @@ fn parse_load_background(s: &str) -> Option<Result<Statement, ParseError>> {
 }
 
 #[derive(Error, Clone, PartialEq, Debug)]
-pub enum LoadCharacterError {}
+enum LoadCharacterError {}
 
 fn parse_load_character(s: &str) -> Option<Result<Statement, ParseError>> {
     let mut split_it = s.split(' ');
@@ -235,7 +235,7 @@ fn parse_load_character(s: &str) -> Option<Result<Statement, ParseError>> {
 }
 
 #[derive(Error, Clone, PartialEq, Debug)]
-pub enum ChoiceError {}
+enum ChoiceError {}
 
 fn parse_choice(s: &str) -> Option<Result<Statement, ParseError>> {
     if s.starts_with('[') && s.ends_with(']') {
@@ -249,7 +249,7 @@ fn parse_choice(s: &str) -> Option<Result<Statement, ParseError>> {
 }
 
 #[derive(Error, Clone, PartialEq, Debug)]
-pub enum TextError {}
+enum TextError {}
 
 fn parse_text(s: &str) -> Option<Result<Statement, ParseError>> {
     if let Some(idx) = s.find(':') {
@@ -279,7 +279,7 @@ fn parse_relation_entity(s: &str) -> RelationEntity {
 }
 
 #[derive(Error, Clone, PartialEq, Debug)]
-pub enum IfError {
+enum IfError {
     #[error("The if contains an unexpected amount of parts '{0}'")]
     InvalidAmountOfParts(usize),
     #[error("The if contains an unknown comparison symbol '{0}'")]

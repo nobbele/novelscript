@@ -104,7 +104,7 @@ pub enum SceneNode {
 
 #[derive(Debug, Clone, Copy)]
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum Branch {
+enum Branch {
     First,
     Middle(usize),
     Last,
@@ -120,7 +120,7 @@ struct Scope {
 }
 
 impl Scope {
-    pub fn inc(&mut self) {
+    fn inc(&mut self) {
         if let Some(idx) = &mut self.index {
             *idx += 1;
         } else {
@@ -393,7 +393,7 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
     }
 }
 
-pub fn parse(data: &str) -> Vec<SceneNode> {
+fn parse(data: &str) -> Vec<SceneNode> {
     let mut nodes = Vec::new();
 
     let parse = NovelscriptParser::parse(Rule::file, &data)
