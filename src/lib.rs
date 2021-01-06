@@ -1,5 +1,6 @@
 use pest::Parser;
 use pest_derive::Parser;
+use petgraph::{graph::NodeIndex, Graph};
 use std::collections::HashMap;
 use vec1::Vec1;
 
@@ -53,6 +54,17 @@ pub struct Condition {
 }
 
 impl Condition {
+    pub fn new_reverse(mut self) -> Self {
+        self.compare = match self.compare {
+            Comparison::Equals => Comparison::NotEquals,
+            Comparison::NotEquals => Comparison::Equals,
+            // I know these are incorrect but can't fix it at the moment
+            Comparison::MoreThan => Comparison::LessThan,
+            Comparison::LessThan => Comparison::MoreThan,
+        };
+        self
+    }
+
     pub fn check(&self, map: &HashMap<String, i32>) -> bool {
         let first = match &self.first {
             CompareableData::Number(n) => Some(n),
@@ -102,16 +114,14 @@ pub enum SceneNode {
     Control(SceneNodeControl),
 }
 
-#[derive(Debug, Clone, Copy)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 enum Branch {
     First,
     Middle(usize),
     Last,
 }
 
-#[derive(Debug, Clone, Default)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct Scope {
     /// This is the index of the node that was next'd. it's None when nothing has been loaded.
     index: Option<usize>,
@@ -129,8 +139,7 @@ impl Scope {
     }
 }
 
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NovelState {
     scene: String,
     variables: HashMap<String, i32>,
@@ -149,6 +158,13 @@ impl NovelState {
         println!("set choice to {}", choice);
         self.scopes.last_mut().choice = choice;
     }
+}
+
+#[derive(Debug)]
+pub enum GraphNode<'a> {
+    Root,
+    Node { node: &'a SceneNodeUser },
+    Branch(Condition),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -177,6 +193,68 @@ impl Novel {
         self.scenes.insert(name, data);
     }
 
+    fn parse_into_graph<'a>(
+        &'a self,
+        graph: &mut Graph<GraphNode<'a>, ()>,
+        parent: NodeIndex,
+        content: &'a [SceneNode],
+    ) {
+        for node in content {
+            match node {
+                SceneNode::User(node) => {
+                    let graph_node = graph.add_node(GraphNode::Node { node });
+                    graph.update_edge(parent, graph_node, ());
+                }
+                SceneNode::Control(node) => match node {
+                    SceneNodeControl::If {
+                        cond,
+                        else_ifs,
+                        else_content,
+                        content,
+                    } => {
+                        {
+                            let graph_node = graph.add_node(GraphNode::Branch(cond.clone()));
+                            graph.update_edge(parent, graph_node, ());
+                            self.parse_into_graph(graph, graph_node, content);
+                        }
+                        for (cond, content) in else_ifs {
+                            let graph_node = graph.add_node(GraphNode::Branch(cond.clone()));
+                            graph.update_edge(parent, graph_node, ());
+                            self.parse_into_graph(graph, graph_node, content);
+                        }
+                        if let Some(content) = else_content {
+                            let graph_node =
+                                graph.add_node(GraphNode::Branch(cond.clone().new_reverse()));
+                            graph.update_edge(parent, graph_node, ());
+                            self.parse_into_graph(graph, graph_node, content);
+                        }
+                    }
+                    SceneNodeControl::Jump(target) => {
+                        let scene = self
+                            .scenes
+                            .get(target)
+                            .unwrap_or_else(|| panic!("Couldn't find scene '{}'", target));
+                        self.parse_into_graph(graph, parent, scene);
+                    }
+                },
+            }
+        }
+    }
+
+    pub fn extract_graph<'a>(
+        &'a self,
+        starting_scene: &str,
+    ) -> (Graph<GraphNode<'a>, ()>, NodeIndex) {
+        let mut graph = Graph::<GraphNode, ()>::new();
+        let root = graph.add_node(GraphNode::Root);
+        let scene = self
+            .scenes
+            .get(starting_scene)
+            .unwrap_or_else(|| panic!("Couldn't find scene '{}'", starting_scene));
+        self.parse_into_graph(&mut graph, root, scene);
+        (graph, root)
+    }
+
     pub fn next<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
         state.scopes.last_mut().inc();
         self.current(state)
@@ -184,10 +262,14 @@ impl Novel {
 
     pub fn current<'a>(&'a self, state: &mut NovelState) -> Option<&'a SceneNodeUser> {
         let active_node = {
-            let active_scene = &self.scenes.get(&state.scene).unwrap_or_else(|| panic!("Couldn't find scene '{}'", state.scene));
+            let active_scene = &self
+                .scenes
+                .get(&state.scene)
+                .unwrap_or_else(|| panic!("Couldn't find scene '{}'", state.scene));
 
             let mut prev_scope = &state.scopes[0];
-            let mut active_node = active_scene.get(prev_scope.index.expect("Expected a scope index"));
+            let mut active_node =
+                active_scene.get(prev_scope.index.expect("Expected a scope index"));
             for scope in &state.scopes[1..] {
                 if let Some(SceneNode::Control(SceneNodeControl::If {
                     cond: _,
@@ -198,7 +280,9 @@ impl Novel {
                 {
                     if let Some(branch) = prev_scope.branch {
                         active_node = match branch {
-                            Branch::First => content.get(scope.index.expect("Expected a scope index")),
+                            Branch::First => {
+                                content.get(scope.index.expect("Expected a scope index"))
+                            }
                             Branch::Middle(n) => else_ifs
                                 .get(n)
                                 .map(|o| o.1.get(scope.index.expect("Expected a scope index")))
@@ -238,13 +322,13 @@ impl Novel {
                         {
                             state.scopes.last_mut().branch = Some(Branch::Middle(n));
                             state.scopes.push(Scope::default())
-                        } else if let Some(_) = else_content {
+                        } else if else_content.is_some() {
                             state.scopes.last_mut().branch = Some(Branch::Last);
                             state.scopes.push(Scope::default())
                         }
 
                         return self.next(state);
-                    },
+                    }
                     SceneNodeControl::Jump(target) => {
                         state.scopes = Vec1::new(Scope::default());
                         state.scene = target.clone();
@@ -305,7 +389,7 @@ fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneN
     (condition, statement_list)
 }
 
-fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
+fn parse_statement(pair: pest::iterators::Pair<'_, Rule>) -> SceneNode {
     match pair.as_rule() {
         Rule::choice_statement => {
             let choices = pair
@@ -383,12 +467,12 @@ fn parse_statement<'a>(pair: pest::iterators::Pair<'a, Rule>) -> SceneNode {
             let mut remove_it = pair.into_inner();
             let name = remove_it.next().unwrap().as_str().to_owned();
             SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::RemoveCharacter { name }))
-        },
+        }
         Rule::jump_statement => {
             let mut jump_it = pair.into_inner();
             let target = jump_it.next().unwrap().as_str().to_owned();
             SceneNode::Control(SceneNodeControl::Jump(target))
-        },
+        }
         _ => unreachable!(),
     }
 }

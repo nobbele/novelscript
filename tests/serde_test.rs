@@ -9,7 +9,7 @@ fn test_save_load() {
         "#;
     let serialized = {
         let mut novel = novelscript::Novel::new();
-        
+
         novel.add_scene("test".into(), s);
 
         let mut state = novel.new_state("test");
@@ -37,8 +37,7 @@ fn test_save_load() {
 
     let mut novel = novelscript::Novel::new();
 
-    novel
-        .add_scene("test".into(), s);
+    novel.add_scene("test".into(), s);
 
     assert_eq!(
         &novelscript::SceneNodeUser::Data(novelscript::SceneNodeData::Text {

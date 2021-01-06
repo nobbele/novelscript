@@ -130,11 +130,9 @@ remove Foo
     state.set_variable("num".into(), 13);
 
     assert_eq!(
-        &novelscript::SceneNodeUser::Load(
-            novelscript::SceneNodeLoad::RemoveCharacter {
-                name: "Foo".into()
-            }
-        ), 
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::RemoveCharacter {
+            name: "Foo".into()
+        }),
         novel.next(&mut state).unwrap()
     );
 
@@ -359,19 +357,25 @@ play relax music
 #[test]
 fn test_jump() -> Result<(), Box<dyn std::error::Error>> {
     let mut novel = novelscript::Novel::new();
-    novel.add_scene("test".into(), r#"
+    novel.add_scene(
+        "test".into(),
+        r#"
 
 foo: test
 _: test
 jump test2
 
-    "#);
-    novel.add_scene("test2".into(), r#"
+    "#,
+    );
+    novel.add_scene(
+        "test2".into(),
+        r#"
 
 foo: it is test2
 _: indeed
 
-    "#);
+    "#,
+    );
     let mut state = novel.new_state("test");
 
     assert_eq!(
