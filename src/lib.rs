@@ -168,9 +168,10 @@ pub enum GraphNode<'a> {
     Branch(Condition),
 }
 
-trait RevNeighbors {
+pub trait RevNeighbors {
     fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter>;
 }
+
 impl<'a> RevNeighbors for Graph<GraphNode<'a>, ()> {
     fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter> {
         self.neighbors(a).collect::<Vec<_>>().into_iter().rev()
