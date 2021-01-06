@@ -1,6 +1,7 @@
 use pest::Parser;
 use pest_derive::Parser;
 use petgraph::{graph::NodeIndex, Graph};
+use serde_json::map::IntoIter;
 use std::collections::HashMap;
 use vec1::Vec1;
 
@@ -165,6 +166,15 @@ pub enum GraphNode<'a> {
     Root,
     Node { node: &'a SceneNodeUser },
     Branch(Condition),
+}
+
+trait RevNeighbors {
+    fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter>;
+}
+impl<'a> RevNeighbors for Graph<GraphNode<'a>, ()> {
+    fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter> {
+        self.neighbors(a).collect::<Vec<_>>().into_iter().rev()
+    }
 }
 
 #[derive(Debug, Clone, Default)]
