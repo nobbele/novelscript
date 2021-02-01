@@ -1,7 +1,6 @@
 use pest::Parser;
 use pest_derive::Parser;
 use petgraph::{graph::NodeIndex, Graph};
-use serde_json::map::IntoIter;
 use std::collections::HashMap;
 use vec1::Vec1;
 
@@ -18,8 +17,8 @@ pub enum SceneNodeData {
 pub enum SceneNodeLoad {
     Character {
         character: String,
-        expression: String,
-        placement: String,
+        expression: Option<String>,
+        placement: Option<String>,
     },
     Background {
         name: String,
@@ -463,12 +462,24 @@ fn parse_statement(pair: pest::iterators::Pair<'_, Rule>) -> SceneNode {
         Rule::load_statement => {
             let mut load_it = pair.into_inner();
             let character = load_it.next().unwrap().as_str().to_owned();
-            let expression = load_it.next().unwrap().as_str().to_owned();
-            let placement = load_it.next().unwrap().as_str().to_owned();
+            let mut property_list = load_it.next().unwrap().into_inner();
+            let mut properties = HashMap::new();
+            while let Some(property) = property_list.next() {
+                let mut property = property.into_inner();
+                let key = property.next().unwrap().as_str();
+                let value = property.next().unwrap().as_str();
+                properties.insert(key, value);
+            }
+            if let Some((&key, _)) = properties
+                .iter()
+                .find(|(&key, _)| key != "expression" && key != "placement")
+            {
+                panic!("Unknown load property key {}", key);
+            }
             SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Character {
                 character,
-                expression,
-                placement,
+                expression: properties.get("expression").copied().map(String::from),
+                placement: properties.get("placement").copied().map(String::from),
             }))
         }
         Rule::sound_statement => {
@@ -489,6 +500,20 @@ fn parse_statement(pair: pest::iterators::Pair<'_, Rule>) -> SceneNode {
             let mut jump_it = pair.into_inner();
             let target = jump_it.next().unwrap().as_str().to_owned();
             SceneNode::Control(SceneNodeControl::Jump(target))
+        }
+        Rule::set_statement => {
+            let mut set_it = pair.into_inner();
+            let character = set_it.next().unwrap().as_str().to_owned();
+            let key = set_it.next().unwrap().as_str();
+            let value = set_it.next().unwrap().as_str();
+            /* really ugly really bad but it's the easiest way of writing that I could think if */
+            let mut properties = HashMap::new();
+            properties.insert(key, value);
+            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Character {
+                character,
+                expression: properties.get("expression").copied().map(String::from),
+                placement: properties.get("placement").copied().map(String::from),
+            }))
         }
         _ => unreachable!(),
     }

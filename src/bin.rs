@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     expression,
                     placement,
                 } => println!(
-                    "Load {} with {} expression at {}",
+                    "Load {} with {:?} expression at {:?}",
                     character, expression, placement
                 ),
                 novelscript::SceneNodeLoad::Background { name } => {

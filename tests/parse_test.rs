@@ -266,9 +266,13 @@ fn test_load_character_and_background() -> Result<(), Box<dyn std::error::Error>
         r#"
 
 Foo: Hello Bar
-load Bar Normal at Center
+load Bar {
+    expression Normal
+    placement Center
+}
 Bar: Hello Foo
 scene Night
+set Bar expression Cold
 Foo: It is now night
 
     "#,
@@ -285,8 +289,8 @@ Foo: It is now night
     assert_eq!(
         &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::Character {
             character: "Bar".into(),
-            expression: "Normal".into(),
-            placement: "Center".into(),
+            expression: Some("Normal".into()),
+            placement: Some("Center".into()),
         }),
         novel.next(&mut state).unwrap()
     );
@@ -300,6 +304,14 @@ Foo: It is now night
     assert_eq!(
         &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::Background {
             name: "Night".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+    assert_eq!(
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::Character {
+            character: "Bar".into(),
+            expression: Some("Cold".into()),
+            placement: None,
         }),
         novel.next(&mut state).unwrap()
     );
