@@ -1,10 +1,11 @@
-WHITESPACE = _{ (" " | "\t" | "\r" | "\n")+ }
+newline = { "\r" | "\r\n" | "\n" }
+WHITESPACE = _{ (" " | "\t" | "\r" | newline)+ }
 COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
-forbidden_name_chars = _{ "\n" | ":" | comparison_op | " " | "}" }
+forbidden_name_chars = _{ newline | ":" | comparison_op | " " | "}" }
 name = @{ (!forbidden_name_chars ~ ANY)+ }
 
-forbidden_text_chars = _{ "\n" | "/" | "]" }
+forbidden_text_chars = _{ newline | "/" | "]" }
 text = @{ (!forbidden_text_chars ~ ANY)+ }
 
 dialogue_statement = { name ~ ":" ~ text }
