@@ -1,2 +1,2 @@
-load Foo normal at center
+load Foo { }
 Foo: It is night

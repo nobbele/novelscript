@@ -1,25 +1,13 @@
-WHITESPACE = _{ (" " | "\t" | "\r" | "\n")+ }
+newline = { "\r" | "\r\n" | "\n" }
+WHITESPACE = _{ (" " | "\t" | "\r" | newline)+ }
 COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
-name = @{ (ASCII_ALPHANUMERIC | "?" | "_")+ }
-text = @{ 
-    (
-        ASCII_ALPHANUMERIC |
-        "?" | 
-        " " | 
-        "'" | 
-        "\"" | 
-        "!" |
-        "." |
-        "," |
-        "’" |
-        ";" |
-        "”" |
-        "“" |
-        "*" |
-        "-"
-    )+
-}
+forbidden_name_chars = _{ newline | ":" | comparison_op | " " | "}" }
+name = @{ (!forbidden_name_chars ~ ANY)+ }
+
+forbidden_text_chars = _{ newline | "/" | "]" }
+text = @{ (!forbidden_text_chars ~ ANY)+ }
+
 dialogue_statement = { name ~ ":" ~ text }
 
 comparison_op = {
@@ -47,8 +35,16 @@ choice_statement = {
     "[" ~ text ~ ("/" ~ text)* ~ "]"
 }
 
+load_property = { name ~ name }
+
+load_property_list = { (load_property)* }
+
 load_statement = {
-    "load" ~ name ~ name ~ ("at" ~ name)
+    "load" ~ name ~ "{" ~ load_property_list ~ "}"
+}
+
+set_statement = {
+    "set" ~ name ~ name ~ name
 }
 
 remove_statement = {
@@ -60,22 +56,23 @@ scene_statement = {
 }
 
 sound_statement = {
-    "play" ~ name ~ name?
+    "play" ~ name ~ "on" ~ name
 }
 
 jump_statement = {
     "jump" ~ name
 }
 
-statement = { 
-    (choice_statement | 
-    if_statement | 
-    load_statement | 
-    scene_statement | 
+statement = {
+    (choice_statement |
+    if_statement |
+    load_statement |
+    set_statement |
+    scene_statement |
     remove_statement |
     sound_statement |
     jump_statement |
-    dialogue_statement) 
+    dialogue_statement)
 }
 statement_list = { (statement)* }
 

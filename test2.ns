@@ -1,10 +1,10 @@
-play bgnoise sfx
+play bgnoise on sfx
 Foo: Hello
-load Foo normal at center
+load Foo { }
 _: Hi
 _: Let us wait for night
 scene Night
-play bgm music
+play bgm on music
 remove Foo
 
 jump test2_night

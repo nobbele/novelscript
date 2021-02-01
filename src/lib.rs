@@ -1,7 +1,6 @@
 use pest::Parser;
 use pest_derive::Parser;
 use petgraph::{graph::NodeIndex, Graph};
-use serde_json::map::IntoIter;
 use std::collections::HashMap;
 use vec1::Vec1;
 
@@ -18,15 +17,15 @@ pub enum SceneNodeData {
 pub enum SceneNodeLoad {
     Character {
         character: String,
-        expression: String,
-        placement: String,
+        expression: Option<String>,
+        placement: Option<String>,
     },
     Background {
         name: String,
     },
     PlaySound {
         name: String,
-        channel: Option<String>,
+        channel: String,
     },
     RemoveCharacter {
         name: String,
@@ -169,11 +168,17 @@ pub enum GraphNode<'a> {
 }
 
 pub trait RevNeighbors {
-    fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter>;
+    fn rev_neighbors(
+        &self,
+        a: NodeIndex<u32>,
+    ) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter>;
 }
 
 impl<'a> RevNeighbors for Graph<GraphNode<'a>, ()> {
-    fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter> {
+    fn rev_neighbors(
+        &self,
+        a: NodeIndex<u32>,
+    ) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter> {
         self.neighbors(a).collect::<Vec<_>>().into_iter().rev()
     }
 }
@@ -368,7 +373,7 @@ struct NovelscriptParser;
 fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneNode>) {
     let condition = {
         let mut cond_it = pair_it.next().unwrap().into_inner();
-        let first = cond_it.next().unwrap().as_str();
+        let first = cond_it.next().unwrap().as_str().trim();
         let compare = match cond_it.next().unwrap().as_str() {
             "=" => Comparison::Equals,
             "!=" => Comparison::NotEquals,
@@ -376,7 +381,7 @@ fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneN
             "<" => Comparison::LessThan,
             c => panic!("{}", c),
         };
-        let second = cond_it.next().unwrap().as_str();
+        let second = cond_it.next().unwrap().as_str().trim();
 
         Condition {
             first: match first.parse() {
@@ -457,12 +462,24 @@ fn parse_statement(pair: pest::iterators::Pair<'_, Rule>) -> SceneNode {
         Rule::load_statement => {
             let mut load_it = pair.into_inner();
             let character = load_it.next().unwrap().as_str().to_owned();
-            let expression = load_it.next().unwrap().as_str().to_owned();
-            let placement = load_it.next().unwrap().as_str().to_owned();
+            let mut property_list = load_it.next().unwrap().into_inner();
+            let mut properties = HashMap::new();
+            while let Some(property) = property_list.next() {
+                let mut property = property.into_inner();
+                let key = property.next().unwrap().as_str();
+                let value = property.next().unwrap().as_str();
+                properties.insert(key, value);
+            }
+            if let Some((&key, _)) = properties
+                .iter()
+                .find(|(&key, _)| key != "expression" && key != "placement")
+            {
+                panic!("Unknown load property key {}", key);
+            }
             SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Character {
                 character,
-                expression,
-                placement,
+                expression: properties.get("expression").copied().map(String::from),
+                placement: properties.get("placement").copied().map(String::from),
             }))
         }
         Rule::sound_statement => {
@@ -471,7 +488,7 @@ fn parse_statement(pair: pest::iterators::Pair<'_, Rule>) -> SceneNode {
             let channel = sound_it.next().unwrap().as_str().to_owned();
             SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::PlaySound {
                 name,
-                channel: Some(channel),
+                channel,
             }))
         }
         Rule::remove_statement => {
@@ -483,6 +500,20 @@ fn parse_statement(pair: pest::iterators::Pair<'_, Rule>) -> SceneNode {
             let mut jump_it = pair.into_inner();
             let target = jump_it.next().unwrap().as_str().to_owned();
             SceneNode::Control(SceneNodeControl::Jump(target))
+        }
+        Rule::set_statement => {
+            let mut set_it = pair.into_inner();
+            let character = set_it.next().unwrap().as_str().to_owned();
+            let key = set_it.next().unwrap().as_str();
+            let value = set_it.next().unwrap().as_str();
+            /* really ugly really bad but it's the easiest way of writing that I could think if */
+            let mut properties = HashMap::new();
+            properties.insert(key, value);
+            SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::Character {
+                character,
+                expression: properties.get("expression").copied().map(String::from),
+                placement: properties.get("placement").copied().map(String::from),
+            }))
         }
         _ => unreachable!(),
     }

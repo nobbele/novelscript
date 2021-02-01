@@ -10,7 +10,7 @@ fn setup(s: &str) -> Result<novelscript::Novel, Box<dyn std::error::Error>> {
 fn test_text() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 foo: test
 _: test
 
@@ -41,7 +41,7 @@ _: test
 fn test_special_text() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 foo: "test"
 _: test? what!
 foo: hmm... what if, you say test
@@ -73,7 +73,7 @@ foo: hmm... what if, you say test
 fn test_if() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 if num = 13
     _: first
 end
@@ -100,7 +100,7 @@ end
 fn test_negative_if() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 if num = 17
     _: first
 end
@@ -120,7 +120,7 @@ end
 fn test_remove() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 remove Foo
 
     "#,
@@ -143,7 +143,7 @@ remove Foo
 fn test_nested_if() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 if num = 13
     _: first
     if num2 = 17
@@ -181,7 +181,7 @@ end
 fn test_choice() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 [x / y]
 if choice = 1
     _: first
@@ -218,7 +218,7 @@ end
 fn test_nested_choices() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 [x / y]
 if choice = 1
     _: first
@@ -264,11 +264,15 @@ end
 fn test_load_character_and_background() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
+
 Foo: Hello Bar
-load Bar Normal at Center
+load Bar {
+    expression Normal
+    placement Center
+}
 Bar: Hello Foo
 scene Night
+set Bar expression Cold
 Foo: It is now night
 
     "#,
@@ -285,8 +289,8 @@ Foo: It is now night
     assert_eq!(
         &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::Character {
             character: "Bar".into(),
-            expression: "Normal".into(),
-            placement: "Center".into(),
+            expression: Some("Normal".into()),
+            placement: Some("Center".into()),
         }),
         novel.next(&mut state).unwrap()
     );
@@ -300,6 +304,14 @@ Foo: It is now night
     assert_eq!(
         &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::Background {
             name: "Night".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+    assert_eq!(
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::Character {
+            character: "Bar".into(),
+            expression: Some("Cold".into()),
+            placement: None,
         }),
         novel.next(&mut state).unwrap()
     );
@@ -318,10 +330,11 @@ Foo: It is now night
 fn test_sound() -> Result<(), Box<dyn std::error::Error>> {
     let novel = setup(
         r#"
-    
-play test
-play noise sfx
-play relax music
+
+play test on sfx
+play noise on sfx
+play relax on music
+play test on music
 
     "#,
     )?;
@@ -330,7 +343,7 @@ play relax music
     assert_eq!(
         &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
             name: "test".into(),
-            channel: None,
+            channel: "sfx".into(),
         }),
         novel.next(&mut state).unwrap()
     );
@@ -338,7 +351,7 @@ play relax music
     assert_eq!(
         &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
             name: "noise".into(),
-            channel: Some("sfx".into()),
+            channel: "sfx".into(),
         }),
         novel.next(&mut state).unwrap()
     );
@@ -346,7 +359,15 @@ play relax music
     assert_eq!(
         &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
             name: "relax".into(),
-            channel: Some("music".into()),
+            channel: "music".into(),
+        }),
+        novel.next(&mut state).unwrap()
+    );
+
+    assert_eq!(
+        &novelscript::SceneNodeUser::Load(novelscript::SceneNodeLoad::PlaySound {
+            name: "test".into(),
+            channel: "music".into(),
         }),
         novel.next(&mut state).unwrap()
     );
