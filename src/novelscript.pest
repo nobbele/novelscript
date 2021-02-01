@@ -1,25 +1,12 @@
 WHITESPACE = _{ (" " | "\t" | "\r" | "\n")+ }
 COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
-name = @{ (ASCII_ALPHANUMERIC | "?" | "_")+ }
-text = @{ 
-    (
-        ASCII_ALPHANUMERIC |
-        "?" | 
-        " " | 
-        "'" | 
-        "\"" | 
-        "!" |
-        "." |
-        "," |
-        "’" |
-        ";" |
-        "”" |
-        "“" |
-        "*" |
-        "-"
-    )+
-}
+forbidden_name_chars = _{ "\n" | ":" | comparison_op | " " }
+name = @{ (!forbidden_name_chars ~ ANY)+ }
+
+forbidden_text_chars = _{ "\n" | "/" | "]" }
+text = @{ (!forbidden_text_chars ~ ANY)+ }
+
 dialogue_statement = { name ~ ":" ~ text }
 
 comparison_op = {
@@ -60,22 +47,22 @@ scene_statement = {
 }
 
 sound_statement = {
-    "play" ~ name ~ name?
+    "play" ~ name ~ "on" ~ name
 }
 
 jump_statement = {
     "jump" ~ name
 }
 
-statement = { 
-    (choice_statement | 
-    if_statement | 
-    load_statement | 
-    scene_statement | 
+statement = {
+    (choice_statement |
+    if_statement |
+    load_statement |
+    scene_statement |
     remove_statement |
     sound_statement |
     jump_statement |
-    dialogue_statement) 
+    dialogue_statement)
 }
 statement_list = { (statement)* }
 

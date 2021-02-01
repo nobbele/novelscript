@@ -26,7 +26,7 @@ pub enum SceneNodeLoad {
     },
     PlaySound {
         name: String,
-        channel: Option<String>,
+        channel: String,
     },
     RemoveCharacter {
         name: String,
@@ -169,11 +169,17 @@ pub enum GraphNode<'a> {
 }
 
 pub trait RevNeighbors {
-    fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter>;
+    fn rev_neighbors(
+        &self,
+        a: NodeIndex<u32>,
+    ) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter>;
 }
 
 impl<'a> RevNeighbors for Graph<GraphNode<'a>, ()> {
-    fn rev_neighbors(&self, a: NodeIndex<u32>) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter> {
+    fn rev_neighbors(
+        &self,
+        a: NodeIndex<u32>,
+    ) -> std::iter::Rev<<Vec<NodeIndex> as IntoIterator>::IntoIter> {
         self.neighbors(a).collect::<Vec<_>>().into_iter().rev()
     }
 }
@@ -368,7 +374,7 @@ struct NovelscriptParser;
 fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneNode>) {
     let condition = {
         let mut cond_it = pair_it.next().unwrap().into_inner();
-        let first = cond_it.next().unwrap().as_str();
+        let first = cond_it.next().unwrap().as_str().trim();
         let compare = match cond_it.next().unwrap().as_str() {
             "=" => Comparison::Equals,
             "!=" => Comparison::NotEquals,
@@ -376,7 +382,7 @@ fn parse_if(mut pair_it: pest::iterators::Pairs<Rule>) -> (Condition, Vec<SceneN
             "<" => Comparison::LessThan,
             c => panic!("{}", c),
         };
-        let second = cond_it.next().unwrap().as_str();
+        let second = cond_it.next().unwrap().as_str().trim();
 
         Condition {
             first: match first.parse() {
@@ -471,7 +477,7 @@ fn parse_statement(pair: pest::iterators::Pair<'_, Rule>) -> SceneNode {
             let channel = sound_it.next().unwrap().as_str().to_owned();
             SceneNode::User(SceneNodeUser::Load(SceneNodeLoad::PlaySound {
                 name,
-                channel: Some(channel),
+                channel,
             }))
         }
         Rule::remove_statement => {
