@@ -1,9 +1,54 @@
+use std::time::Instant;
+
 use novelscript;
 
 fn setup(s: &str) -> Result<novelscript::Novel, Box<dyn std::error::Error>> {
     let mut novel = novelscript::Novel::new();
     novel.add_scene("test".into(), s);
     Ok(novel)
+}
+
+// Remember to run with Release mode
+#[test]
+#[ignore]
+fn test_perf() -> Result<(), Box<dyn std::error::Error>> {
+    let mut novel = novelscript::Novel::new();
+    let data = r#"
+[x / y]
+if choice = 1
+    _: first
+    [a / b]
+end
+if choice = 2
+    _: second
+end
+    "#;
+    const UPPER: usize = 10_000;
+
+    let parsing_millis = {
+        let before = Instant::now();
+
+        for i in 0..UPPER {
+            novel.add_scene(format!("test-{}", i), data);
+        }
+
+        before.elapsed().as_millis()
+    };
+    let reading_millis = {
+        let before = Instant::now();
+
+        for i in 0..UPPER {
+            let mut state = novel.new_state(&format!("test-{}", i));
+            while let Some(_) = novel.next(&mut state) {}
+        }
+
+        before.elapsed().as_millis()
+    };
+
+    println!("Parsing {} scripts took: {}ms", UPPER, parsing_millis);
+    println!("Running {} scripts took: {}ms", UPPER, reading_millis);
+
+    panic!();
 }
 
 #[test]
